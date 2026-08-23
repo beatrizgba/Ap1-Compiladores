@@ -1,90 +1,33 @@
-# AP1 — Analisador Léxico da Linguagem MINIC
+# AP 1 - Analisador Léxico (Linguagem MINIC)
 
-Projeto desenvolvido para a disciplina de **Compiladores**, correspondente à **Etapa 1 do Projeto Final** e à avaliação da **AP1**.
+Este repositório contém a implementação da **Etapa 1** do projeto de construção de um compilador para a linguagem **MINIC**, desenvolvida para a disciplina de Compiladores.
 
-O projeto consiste no desenvolvimento de um analisador léxico para a linguagem **MINIC**, responsável por identificar os elementos léxicos presentes no código-fonte, gerar os respectivos tokens e detectar possíveis erros léxicos.
-
----
-
-## Integrantes
-
-| Nome | RA |
-|---|---|
-| Beatriz Gabrielly Batista de Almeida | 2400276 |
-| Ana Clara T. Coser | 2401456 |
-| Vinicius Henrique Santos | 2400306 |
+O objetivo desta etapa é realizar a análise léxica, identificando os tokens válidos da linguagem (como palavras reservadas, identificadores, literais, operadores e delimitadores) e reportando erros para símbolos ou formações inválidas.
 
 ---
 
-## 1. Objetivo
+## 👥 Integrantes do Grupo
 
-O analisador léxico corresponde à primeira etapa do processo de compilação.
-
-Sua função é receber um código-fonte escrito na linguagem MINIC e transformá-lo em uma sequência de tokens, identificando os elementos léxicos presentes no programa.
-
-O analisador desenvolvido deve:
-
-- reconhecer palavras reservadas;
-- reconhecer identificadores;
-- reconhecer literais inteiros;
-- reconhecer literais reais;
-- reconhecer literais de caracteres;
-- reconhecer literais de cadeia;
-- reconhecer operadores;
-- reconhecer delimitadores;
-- ignorar espaços em branco;
-- ignorar comentários de linha;
-- ignorar comentários de bloco;
-- informar a linha e a coluna de cada token;
-- informar atributos dos tokens quando aplicável;
-- reconhecer o fim do arquivo;
-- identificar e reportar erros léxicos.
-
-Esta etapa corresponde à **Etapa 1 do Projeto Final da disciplina de Compiladores** e à avaliação da **AP1**.
+- **Ana Clara T. Coser** — RA: 2401456
+- **Beatriz Gabrielly Batista de Almeida** — RA: 2400276
+- **Vinicius Henrique Santos** — RA: 2400306
 
 ---
 
-## 2. Tecnologias utilizadas
-
-- Python 3
-- C
-- GCC
-- Git
-- GitHub
-
----
-
-## 3. Estrutura do projeto
+## 📁 Estrutura do Repositório
 
 ```text
-Ap1-Compiladores/
-│
-├── README.md
-│
-└── Minic/
-    │
-    ├── src/
-    │   └── lexer/
-    │       ├── lexer.py
-    │       └── lexer.c
-    │
-    └── tests/
-        ├── casos-invalidos/
-        │   ├── i01_simbolo_desconhecido.minic
-        │   ├── i01_simbolo_desconhecido.expected.jsonl
-        │   ├── i01_simbolo_desconhecido.errors.jsonl
-        │   ├── ...
-        │
-        ├── casos-programas-c/
-        │   ├── c01_fibonacci.c
-        │   ├── c01_fibonacci.c.expected.jsonl
-        │   ├── c02_primos.c
-        │   ├── c02_primos.c.expected.jsonl
-        │   ├── c03_media_vetor.c
-        │   ├── c03_media_vetor.c.expected.jsonl
-        │   ├── c04_menu_interativo.c
-        │   ├── c04_menu_interativo.c.expected.jsonl
-        │   ├── c05_controle_temperatura.c
-        │   └── c05_controle_temperatura.c.expected.jsonl
-        │
-        └── check_fixtures.py
+.
+├── src/
+│   └── lexer/
+│       ├── lexer.py             # Analisador Léxico em Python
+│       └── lexer.l              # Especificação Flex/C do Analisador Léxico
+├── tests/
+│   ├── casos-invalidos/       # Fixtures de casos com erros léxicos (.minic e .jsonl)
+│   ├── casos-programas-c/     # Fixtures de programas válidos em C/MINIC (.c e .jsonl)
+│   ├── resultados/            # Arquivos de saída gerados pela suíte de teste (.jsonl)
+│   │   └── python/            # Saídas em JSONL geradas nos testes de Python
+│   ├── check_fixtures.py      # Script oficial de verificação das fixtures
+│   └── run_tests.py           # Script de execução e relatório da bateria de testes
+├── .gitignore
+└── README.md
