@@ -1,4 +1,6 @@
 %option noyywrap
+%option noinput
+%option nounput
 
 %x BLOCK_COMMENT STRING_LITERAL CHAR_LITERAL
 
@@ -173,7 +175,19 @@ static char *literal_attribute(const char *raw, size_t len) {
     return out;
 }
 
+static void sanitize_buffer_crlf(void) {
+    size_t j = 0;
+    for (size_t i = 0; i < buffer_len; ++i) {
+        if (buffer[i] != '\r') {
+            buffer[j++] = buffer[i];
+        }
+    }
+    buffer_len = j;
+    if (buffer) buffer[buffer_len] = '\0';
+}
+
 static void finish_buffered_block_comment(void) {
+    sanitize_buffer_crlf();
     print_error("UNTERMINATED_BLOCK_COMMENT", buffer, buffer_len,
                 token_line, token_column);
     advance_text(buffer, buffer_len);
@@ -181,19 +195,21 @@ static void finish_buffered_block_comment(void) {
 }
 
 static void report_unterminated_string(void) {
+    sanitize_buffer_crlf();
     print_error("UNTERMINATED_STRING_LITERAL", buffer, buffer_len,
                 token_line, token_column);
     advance_text(buffer, buffer_len);
     buffer_reset();
-    BEGIN(INITIAL);
+    BEGIN(0);
 }
 
 static void report_unterminated_char(void) {
+    sanitize_buffer_crlf();
     print_error("UNTERMINATED_CHAR_LITERAL", buffer, buffer_len,
                 token_line, token_column);
     advance_text(buffer, buffer_len);
     buffer_reset();
-    BEGIN(INITIAL);
+    BEGIN(0);
 }
 
 %}
@@ -229,6 +245,7 @@ static void report_unterminated_char(void) {
                           }
 <BLOCK_COMMENT><<EOF>>   {
                             finish_buffered_block_comment();
+                            print_token("EOF", "", 0, NULL, 0, current_line, current_column);
                             BEGIN(INITIAL);
                             yyterminate();
                           }
@@ -251,7 +268,7 @@ static void report_unterminated_char(void) {
                             BEGIN(INITIAL);
                           }
 
-<STRING_LITERAL>\\\.    {
+<STRING_LITERAL>\\.     {
                             buffer_append(yytext, yyleng);
                           }
 
@@ -261,11 +278,12 @@ static void report_unterminated_char(void) {
 
 <STRING_LITERAL>\r?\n   {
                             report_unterminated_string();
-                            advance_text(yytext, yyleng);
+                            advance_text("\n", 1);
                           }
 
 <STRING_LITERAL><<EOF>> {
                             report_unterminated_string();
+                            print_token("EOF", "", 0, NULL, 0, current_line, current_column);
                             yyterminate();
                           }
 
@@ -287,23 +305,36 @@ static void report_unterminated_char(void) {
                             BEGIN(INITIAL);
                           }
 
-<CHAR_LITERAL>\\\.       {
+<CHAR_LITERAL>\\.        {
                             buffer_append(yytext, yyleng);
                           }
 
-<CHAR_LITERAL>[^'\\\r\n;,\)\]\}]+ {
+<CHAR_LITERAL>[^'\\\r\n;]+ {
                             buffer_append(yytext, yyleng);
                           }
 
-<CHAR_LITERAL>\r?\n      { report_unterminated_char(); advance_text(yytext, yyleng); }
-<CHAR_LITERAL>";"         { report_unterminated_char(); yyless(0); }
-<CHAR_LITERAL>\)         { report_unterminated_char(); yyless(0); }
-<CHAR_LITERAL>\]         { report_unterminated_char(); yyless(0); }
-<CHAR_LITERAL>\}         { report_unterminated_char(); yyless(0); }
-<CHAR_LITERAL><<EOF>>    { report_unterminated_char(); yyterminate(); }
+<CHAR_LITERAL>";"        {
+                            report_unterminated_char();
+                            yyless(0);
+                          }
 
-<INITIAL>[0-9]+\.([^0-9]|$) {
+<CHAR_LITERAL>\r?\n      {
+                            report_unterminated_char();
+                            advance_text("\n", 1);
+                          }
+
+<CHAR_LITERAL><<EOF>>    {
+                            report_unterminated_char();
+                            print_token("EOF", "", 0, NULL, 0, current_line, current_column);
+                            yyterminate();
+                          }
+
+<INITIAL>[0-9]+\.[^0-9]  {
                             print_error("MALFORMED_REAL_LITERAL", yytext, yyleng - 1, current_line, current_column);
+                            print_int(yytext, yyleng - 2, current_line, current_column);
+                            advance_text(yytext, yyleng - 2);
+                            print_token("DOT", ".", 1, NULL, 0, current_line, current_column);
+                            advance_text(".", 1);
                             yyless(yyleng - 1);
                           }
 
