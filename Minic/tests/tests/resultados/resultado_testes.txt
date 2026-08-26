@@ -1,5 +1,0 @@
-RESULTADO DOS TESTES
-====================
-
-Python: TODOS OS TESTES OK
-C:      FALHOU

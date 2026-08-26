@@ -1,5 +1,0 @@
-RESULTADO DOS TESTES DO ANALISADOR LÉXICO
-==========================================
-
-Python: TODOS OS TESTES OK
-C:      FALHOU

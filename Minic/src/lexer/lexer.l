@@ -1,5 +1,4 @@
 %option noyywrap
-%option nodefault
 
 %x BLOCK_COMMENT STRING_LITERAL CHAR_LITERAL
 
@@ -99,8 +98,6 @@ static void advance_text(const char *s, size_t n) {
             current_column = 1;
             ++i;
         } else {
-            /* Flex reports byte lengths, while the reference lexer counts
-               UTF-8 characters as one column. */
             if (c < 0x80) {
                 ++i;
             } else if ((c & 0xE0) == 0xC0 && i + 1 < n) {
@@ -183,14 +180,30 @@ static void finish_buffered_block_comment(void) {
     buffer_reset();
 }
 
+static void report_unterminated_string(void) {
+    print_error("UNTERMINATED_STRING_LITERAL", buffer, buffer_len,
+                token_line, token_column);
+    advance_text(buffer, buffer_len);
+    buffer_reset();
+    BEGIN(0);
+}
+
+static void report_unterminated_char(void) {
+    print_error("UNTERMINATED_CHAR_LITERAL", buffer, buffer_len,
+                token_line, token_column);
+    advance_text(buffer, buffer_len);
+    buffer_reset();
+    BEGIN(0);
+}
+
 %}
 
 %%
 
-<INITIAL>[ \t\r]+       { advance_text(yytext, yyleng); }
+<INITIAL>[ \t\r]+        { advance_text(yytext, yyleng); }
 <INITIAL>\n              { advance_text(yytext, yyleng); }
 
-<INITIAL>"//"[^\n]*    { advance_text(yytext, yyleng); }
+<INITIAL>"//"[^\n]*     { advance_text(yytext, yyleng); }
 
 <INITIAL>"/*"           {
                             begin_token();
@@ -228,8 +241,6 @@ static void finish_buffered_block_comment(void) {
                             BEGIN(STRING_LITERAL);
                           }
 
-/* Consume a complete physical line in STRING_LITERAL. We inspect it in C
-   so escaped quotes and the exact recovery rule match the Python reference. */
 <STRING_LITERAL>[^\n]*\n {
                             buffer_append(yytext, yyleng - 1);
                             size_t close = (size_t)-1;
@@ -252,8 +263,6 @@ static void finish_buffered_block_comment(void) {
                                 advance_text(buffer, len);
                                 buffer_reset();
                                 BEGIN(INITIAL);
-                                /* Reprocess everything after the closing quote,
-                                   including the newline. */
                                 yyless((int)len);
                             } else {
                                 size_t resume = buffer_len;
@@ -268,7 +277,6 @@ static void finish_buffered_block_comment(void) {
                                 advance_text(buffer, resume);
                                 buffer_reset();
                                 BEGIN(INITIAL);
-                                /* Keep the delimiter (or newline) in the input. */
                                 yyless((int)resume);
                             }
                           }
@@ -294,7 +302,6 @@ static void finish_buffered_block_comment(void) {
                                 free(attr);
                                 advance_text(buffer, len);
                                 if (suffix > 0) {
-                                    /* Put suffix back into Flex input. */
                                     yyless((int)(yyleng - suffix));
                                 }
                                 buffer_reset();
@@ -343,16 +350,12 @@ static void finish_buffered_block_comment(void) {
                           }
 <CHAR_LITERAL>\n          { report_unterminated_char(); yyless(0); }
 <CHAR_LITERAL>\r          { report_unterminated_char(); yyless(0); }
-<CHAR_LITERAL>";"         {
-                            report_unterminated_char();
-                            yyless(0);
-                          }
+<CHAR_LITERAL>";"         { report_unterminated_char(); yyless(0); }
 <CHAR_LITERAL>\)          { report_unterminated_char(); yyless(0); }
 <CHAR_LITERAL>\]          { report_unterminated_char(); yyless(0); }
 <CHAR_LITERAL>\}          { report_unterminated_char(); yyless(0); }
 <CHAR_LITERAL><<EOF>>     { report_unterminated_char(); yyterminate(); }
 
-/* Malformed real: report only the integer+dot, then let the dot be re-read. */
 <INITIAL>[0-9]+"."([^0-9]|$) {
                             size_t digits = yyleng - 1;
                             print_error("MALFORMED_REAL_LITERAL", yytext,
@@ -362,9 +365,6 @@ static void finish_buffered_block_comment(void) {
                             yyless((int)digits);
                           }
 
-/* Digit followed by identifier characters: report the whole malformed
-   identifier, but continue tokenizing it as an integer followed by IDENT,
-   exactly like the reference implementation. */
 <INITIAL>[0-9]+[A-Za-z_][A-Za-z0-9_]* {
                             print_error("INVALID_IDENTIFIER", yytext, yyleng,
                                         current_line, current_column);
@@ -423,7 +423,9 @@ static void finish_buffered_block_comment(void) {
 <INITIAL>","             { print_token("COMMA",yytext,1,NULL,0,current_line,current_column); advance_text(yytext,1); }
 <INITIAL>"."             { print_token("DOT",yytext,1,NULL,0,current_line,current_column); advance_text(yytext,1); }
 
-<INITIAL>.                { print_error("UNKNOWN_SYMBOL",yytext,1,current_line,current_column); advance_text(yytext,1); }
+<INITIAL>"."             { print_token("DOT",yytext,1,NULL,0,current_line,current_column); advance_text(yytext,1); }
+
+<INITIAL>(.|\n)          { print_error("UNKNOWN_SYMBOL",yytext,1,current_line,current_column); advance_text(yytext,1); }
 
 <INITIAL><<EOF>>          {
                             print_token("EOF", "", 0, NULL, 0,
