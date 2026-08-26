@@ -272,6 +272,44 @@ static void report_unterminated_char(void) {
                             buffer_append(yytext, yyleng);
                           }
 
+    /* Recuperação de cadeia não terminada: mantém );, ) ou ; para que
+       eles sejam reconhecidos normalmente depois do erro. */
+<STRING_LITERAL>[^"\\\r\n]*\); {
+                            buffer_append(yytext, yyleng);
+                            print_error("UNTERMINATED_STRING_LITERAL", buffer, buffer_len,
+                                        token_line, token_column);
+                            if (buffer_len >= 2) {
+                                advance_text(buffer, buffer_len - 2);
+                            }
+                            buffer_reset();
+                            BEGIN(INITIAL);
+                            yyless(yyleng - 2);
+                          }
+
+<STRING_LITERAL>[^"\\\r\n]*\) {
+                            buffer_append(yytext, yyleng);
+                            print_error("UNTERMINATED_STRING_LITERAL", buffer, buffer_len,
+                                        token_line, token_column);
+                            if (buffer_len >= 1) {
+                                advance_text(buffer, buffer_len - 1);
+                            }
+                            buffer_reset();
+                            BEGIN(INITIAL);
+                            yyless(yyleng - 1);
+                          }
+
+<STRING_LITERAL>[^"\\\r\n]*; {
+                            buffer_append(yytext, yyleng);
+                            print_error("UNTERMINATED_STRING_LITERAL", buffer, buffer_len,
+                                        token_line, token_column);
+                            if (buffer_len >= 1) {
+                                advance_text(buffer, buffer_len - 1);
+                            }
+                            buffer_reset();
+                            BEGIN(INITIAL);
+                            yyless(yyleng - 1);
+                          }
+
 <STRING_LITERAL>[^"\\\r\n]+ {
                             buffer_append(yytext, yyleng);
                           }
@@ -315,7 +353,7 @@ static void report_unterminated_char(void) {
 
 <CHAR_LITERAL>";"        {
                             report_unterminated_char();
-                            yyless(0);
+                            advance_text(yytext, yyleng);
                           }
 
 <CHAR_LITERAL>\r?\n      {
