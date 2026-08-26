@@ -185,7 +185,7 @@ static void report_unterminated_string(void) {
                 token_line, token_column);
     advance_text(buffer, buffer_len);
     buffer_reset();
-    BEGIN(0);
+    BEGIN(INITIAL);
 }
 
 static void report_unterminated_char(void) {
@@ -193,7 +193,7 @@ static void report_unterminated_char(void) {
                 token_line, token_column);
     advance_text(buffer, buffer_len);
     buffer_reset();
-    BEGIN(0);
+    BEGIN(INITIAL);
 }
 
 %}
@@ -209,23 +209,23 @@ static void report_unterminated_char(void) {
                             begin_token();
                             buffer_reset();
                             buffer_append(yytext, yyleng);
-                            advance_text(yytext, yyleng);
                             BEGIN(BLOCK_COMMENT);
                           }
 
 <BLOCK_COMMENT>"*/"     {
                             buffer_append(yytext, yyleng);
-                            advance_text(yytext, yyleng);
+                            advance_text(buffer, buffer_len);
                             buffer_reset();
                             BEGIN(INITIAL);
                           }
-<BLOCK_COMMENT>[^*]+     {
+<BLOCK_COMMENT>[^*\r\n]+ {
                             buffer_append(yytext, yyleng);
-                            advance_text(yytext, yyleng);
                           }
 <BLOCK_COMMENT>"*"      {
                             buffer_append(yytext, yyleng);
-                            advance_text(yytext, yyleng);
+                          }
+<BLOCK_COMMENT>\r?\n    {
+                            buffer_append(yytext, yyleng);
                           }
 <BLOCK_COMMENT><<EOF>>   {
                             finish_buffered_block_comment();
@@ -237,77 +237,33 @@ static void report_unterminated_char(void) {
                             begin_token();
                             buffer_reset();
                             buffer_append(yytext, yyleng);
-                            advance_text(yytext, yyleng);
                             BEGIN(STRING_LITERAL);
                           }
 
-<STRING_LITERAL>[^\n]*\n {
-                            buffer_append(yytext, yyleng - 1);
-                            size_t close = (size_t)-1;
-                            int escaped = 0;
-                            for (size_t i = 1; i < buffer_len; ++i) {
-                                unsigned char c = (unsigned char)buffer[i];
-                                if (c == '"' && !escaped) {
-                                    close = i;
-                                    break;
-                                }
-                                if (c == '\\' && !escaped) escaped = 1;
-                                else escaped = 0;
-                            }
-                            if (close != (size_t)-1) {
-                                size_t len = close + 1;
-                                char *attr = literal_attribute(buffer, len);
-                                print_token("STRING_LIT", buffer, len, attr, 1,
-                                            token_line, token_column);
-                                free(attr);
-                                advance_text(buffer, len);
-                                buffer_reset();
-                                BEGIN(INITIAL);
-                                yyless((int)len);
-                            } else {
-                                size_t resume = buffer_len;
-                                for (size_t i = 1; i < buffer_len; ++i) {
-                                    if (buffer[i] == ')' || buffer[i] == ';') {
-                                        resume = i;
-                                        break;
-                                    }
-                                }
-                                print_error("UNTERMINATED_STRING_LITERAL", buffer, resume,
-                                            token_line, token_column);
-                                advance_text(buffer, resume);
-                                buffer_reset();
-                                BEGIN(INITIAL);
-                                yyless((int)resume);
-                            }
-                          }
-<STRING_LITERAL>[^\n]+   {
+<STRING_LITERAL>\"      {
                             buffer_append(yytext, yyleng);
-                            size_t close = (size_t)-1;
-                            int escaped = 0;
-                            for (size_t i = 1; i < buffer_len; ++i) {
-                                unsigned char c = (unsigned char)buffer[i];
-                                if (c == '"' && !escaped) {
-                                    close = i;
-                                    break;
-                                }
-                                if (c == '\\' && !escaped) escaped = 1;
-                                else escaped = 0;
-                            }
-                            if (close != (size_t)-1) {
-                                size_t suffix = buffer_len - (close + 1);
-                                size_t len = close + 1;
-                                char *attr = literal_attribute(buffer, len);
-                                print_token("STRING_LIT", buffer, len, attr, 1,
-                                            token_line, token_column);
-                                free(attr);
-                                advance_text(buffer, len);
-                                if (suffix > 0) {
-                                    yyless((int)(yyleng - suffix));
-                                }
-                                buffer_reset();
-                                BEGIN(INITIAL);
-                            }
+                            char *attr = literal_attribute(buffer, buffer_len);
+                            print_token("STRING_LIT", buffer, buffer_len, attr, 1,
+                                        token_line, token_column);
+                            free(attr);
+                            advance_text(buffer, buffer_len);
+                            buffer_reset();
+                            BEGIN(INITIAL);
                           }
+
+<STRING_LITERAL>\\\.    {
+                            buffer_append(yytext, yyleng);
+                          }
+
+<STRING_LITERAL>[^"\\\r\n]+ {
+                            buffer_append(yytext, yyleng);
+                          }
+
+<STRING_LITERAL>\r?\n   {
+                            report_unterminated_string();
+                            advance_text(yytext, yyleng);
+                          }
+
 <STRING_LITERAL><<EOF>> {
                             report_unterminated_string();
                             yyterminate();
@@ -317,57 +273,42 @@ static void report_unterminated_char(void) {
                             begin_token();
                             buffer_reset();
                             buffer_append(yytext, yyleng);
-                            advance_text(yytext, yyleng);
                             BEGIN(CHAR_LITERAL);
                           }
 
-<CHAR_LITERAL>[^\n\r;,\)\]\}]+ {
+<CHAR_LITERAL>'          {
                             buffer_append(yytext, yyleng);
-                            size_t close = (size_t)-1;
-                            int escaped = 0;
-                            for (size_t i = 1; i < buffer_len; ++i) {
-                                unsigned char c = (unsigned char)buffer[i];
-                                if (c == '\'' && !escaped) {
-                                    close = i;
-                                    break;
-                                }
-                                if (c == '\\' && !escaped) escaped = 1;
-                                else escaped = 0;
-                            }
-                            if (close != (size_t)-1) {
-                                size_t len = close + 1;
-                                char *attr = literal_attribute(buffer, len);
-                                print_token("CHAR_LIT", buffer, len, attr, 1,
-                                            token_line, token_column);
-                                free(attr);
-                                advance_text(buffer, len);
-                                if (buffer_len > len) {
-                                    yyless((int)(yyleng - (buffer_len - len)));
-                                }
-                                buffer_reset();
-                                BEGIN(INITIAL);
-                            }
+                            char *attr = literal_attribute(buffer, buffer_len);
+                            print_token("CHAR_LIT", buffer, buffer_len, attr, 1,
+                                        token_line, token_column);
+                            free(attr);
+                            advance_text(buffer, buffer_len);
+                            buffer_reset();
+                            BEGIN(INITIAL);
                           }
-<CHAR_LITERAL>\n          { report_unterminated_char(); yyless(0); }
-<CHAR_LITERAL>\r          { report_unterminated_char(); yyless(0); }
-<CHAR_LITERAL>";"         { report_unterminated_char(); yyless(0); }
-<CHAR_LITERAL>\)          { report_unterminated_char(); yyless(0); }
-<CHAR_LITERAL>\]          { report_unterminated_char(); yyless(0); }
-<CHAR_LITERAL>\}          { report_unterminated_char(); yyless(0); }
-<CHAR_LITERAL><<EOF>>     { report_unterminated_char(); yyterminate(); }
 
-<INITIAL>[0-9]+"."([^0-9]|$) {
-                            size_t digits = yyleng - 1;
-                            print_error("MALFORMED_REAL_LITERAL", yytext,
-                                        digits + 1, current_line, current_column);
-                            print_int(yytext, digits, current_line, current_column);
-                            advance_text(yytext, digits);
-                            yyless((int)digits);
+<CHAR_LITERAL>\\\.       {
+                            buffer_append(yytext, yyleng);
+                          }
+
+<CHAR_LITERAL>[^'\\\r\n;,\)\]\}]+ {
+                            buffer_append(yytext, yyleng);
+                          }
+
+<CHAR_LITERAL>\r?\n      { report_unterminated_char(); advance_text(yytext, yyleng); }
+<CHAR_LITERAL>";"         { report_unterminated_char(); yyless(0); }
+<CHAR_LITERAL>\)         { report_unterminated_char(); yyless(0); }
+<CHAR_LITERAL>\]         { report_unterminated_char(); yyless(0); }
+<CHAR_LITERAL>\}         { report_unterminated_char(); yyless(0); }
+<CHAR_LITERAL><<EOF>>    { report_unterminated_char(); yyterminate(); }
+
+<INITIAL>[0-9]+\.([^0-9]|$) {
+                            print_error("MALFORMED_REAL_LITERAL", yytext, yyleng - 1, current_line, current_column);
+                            yyless(yyleng - 1);
                           }
 
 <INITIAL>[0-9]+[A-Za-z_][A-Za-z0-9_]* {
-                            print_error("INVALID_IDENTIFIER", yytext, yyleng,
-                                        current_line, current_column);
+                            print_error("INVALID_IDENTIFIER", yytext, yyleng, current_line, current_column);
                             size_t j = 0;
                             while (j < (size_t)yyleng && isdigit((unsigned char)yytext[j])) ++j;
                             print_int(yytext, j, current_line, current_column);
@@ -421,8 +362,6 @@ static void report_unterminated_char(void) {
 <INITIAL>"}"             { print_token("RBRACE",yytext,1,NULL,0,current_line,current_column); advance_text(yytext,1); }
 <INITIAL>";"             { print_token("SEMICOLON",yytext,1,NULL,0,current_line,current_column); advance_text(yytext,1); }
 <INITIAL>","             { print_token("COMMA",yytext,1,NULL,0,current_line,current_column); advance_text(yytext,1); }
-<INITIAL>"."             { print_token("DOT",yytext,1,NULL,0,current_line,current_column); advance_text(yytext,1); }
-
 <INITIAL>"."             { print_token("DOT",yytext,1,NULL,0,current_line,current_column); advance_text(yytext,1); }
 
 <INITIAL>(.|\n)          { print_error("UNKNOWN_SYMBOL",yytext,1,current_line,current_column); advance_text(yytext,1); }
