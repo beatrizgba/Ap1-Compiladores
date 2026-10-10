@@ -44,118 +44,172 @@ Minic/
 
 ## Preparar e executar
 
-Python 3 não precisa de pacotes externos; PLY não é utilizado. A versão C
-precisa de GCC. Os scripts oficiais precisam de Bash (no Windows, pode ser
-usado Git Bash ou WSL). `make` facilita a compilação, mas é opcional. O C
-gerado está versionado; Flex só é necessário ao alterar as regras léxicas.
-Os pontos de entrada emitem UTF-8 sem tradução de quebras de linha; os
-scripts `.sh` mantêm LF mesmo com Git configurado para CRLF no Windows.
+### Passo 1 — conferir as ferramentas
 
-Todos os comandos abaixo são executados na pasta `Minic`:
+Para usar a versão Python, instale o **Python 3**. Ela não precisa de bibliotecas
+extras. Para usar a versão C, instale também o **GCC**.
+
+No Windows, abra o terminal **Git Bash** no VS Code para executar os comandos
+abaixo e os scripts de testes do professor. O GCC precisa estar disponível
+nesse terminal.
+
+Confira a instalação da versão que você vai usar:
+
+```bash
+python --version
+gcc --version
+```
+
+### Passo 2 — entrar na pasta do projeto
+
+Abra a pasta `Ap1-Compiladores` no VS Code. No terminal, entre na pasta `Minic`:
 
 ```bash
 cd Minic
-make
 ```
 
-Sem `make`, os comandos simples também funcionam:
+Execute todos os próximos comandos dentro dessa pasta.
+
+### Passo 3 — compilar, se for usar C
+
+Compile os programas das etapas 2 e 3:
 
 ```bash
 gcc -std=c11 -Wall -Wextra parser.c -o parser
 gcc -std=c11 -Wall -Wextra minic.c -o minic
 ```
 
-### Etapa 1 — scanner
+Se for usar Python, pode seguir direto para a etapa desejada.
+
+## Etapa 1 — analisador léxico (scanner)
+
+**O que fizemos:** criamos o scanner em Python e C. Ele lê o código e identifica
+os tokens, como palavras reservadas, nomes de variáveis, números e operadores.
+Também informa a linha e a coluna de cada token e aponta erros léxicos.
+
+Por exemplo, em `int idade = 20;`, ele identifica `int`, `idade`, `=`, `20` e `;`.
+Os arquivos originais dessa etapa foram preservados.
+
+### Passo 1 — escolher um arquivo para analisar
+
+Neste exemplo, vamos usar `tests/casos-programas-c/c01_fibonacci.c`.
+Você pode substituir esse caminho pelo arquivo MINIC que quiser analisar.
+
+### Passo 2 — executar na versão escolhida
+
+**Python:**
 
 ```bash
 python src/lexer/lexer.py tests/casos-programas-c/c01_fibonacci.c
+```
+
+**C:** compile o scanner e depois execute:
+
+```bash
 gcc -std=c11 -D_POSIX_C_SOURCE=200809L src/lexer/lexer.c -o lexer
 ./lexer tests/casos-programas-c/c01_fibonacci.c
 ```
 
-Os fontes e o formato JSONL originais dessa etapa foram mantidos. O adaptador
-Python das etapas seguintes importa `tokenize` desse lexer. O adaptador C é
-gerado das regras do mesmo `lexer.l`, substituindo apenas a emissão de JSONL
-pela criação de tokens para o parser.
+### Passo 3 — conferir o resultado
 
-### Etapa 2 — parser
+O terminal mostra os tokens encontrados, um por linha, no formato JSON.
+Se houver um erro léxico, ele também será informado.
+
+## Etapa 2 — analisador sintático (parser)
+
+**O que fizemos:** construímos o parser para usar os tokens da etapa 1 e verificar
+se o código segue a gramática do MINIC. Quando a sintaxe está correta, ele monta
+uma árvore sintática (AST), que representa a estrutura do programa.
+
+**Corrigimos a versão entregue anteriormente:** ajustamos a leitura dos tokens,
+o reconhecimento de declarações, vetores, funções e expressões, a construção
+da árvore e o tratamento de erros. As versões Python e C foram integradas
+à etapa 1 e revisadas com os testes sintáticos fornecidos pelo professor.
+
+### Passo 1 — escolher um arquivo para analisar
+
+Neste exemplo, vamos usar `tests/parser/casos/25_programa_integrado/codigo.c`.
+
+### Passo 2 — executar na versão escolhida
+
+**Python:**
 
 ```bash
 python parser.py tests/parser/casos/25_programa_integrado/codigo.c
+```
+
+**C:** depois da compilação indicada na preparação:
+
+```bash
 ./parser tests/parser/casos/25_programa_integrado/codigo.c
 ```
 
-A saída é a AST textual. Erros léxicos ou sintáticos retornam status 1 sem
-imprimir uma árvore parcial; falhas de entrada/uso retornam 2. A etapa 2 não
-aplica regras semânticas: por exemplo, pode construir a árvore de `if (1)`,
-mas a etapa 3 rejeita essa condição por não ser booleana.
+### Passo 3 — conferir o resultado
 
-### Etapa 3 — analisador semântico
+Se a sintaxe estiver correta, o terminal mostra a árvore do programa.
+Se houver um erro léxico ou sintático, mostra o erro e não imprime uma árvore
+incompleta.
+
+## Etapa 3 — analisador semântico
+
+**O que fizemos:** revisamos e corrigimos o analisador semântico em Python e C.
+Ele usa a árvore da etapa 2 para verificar se o programa faz sentido segundo
+as regras do MINIC. Entre as verificações estão:
+
+- Uso de variáveis declaradas e nomes repetidos no mesmo escopo.
+- Compatibilidade dos tipos em atribuições, operações e chamadas de funções.
+- Uso de vetores e índices inteiros.
+- Condições booleanas em `if` e `while`.
+- Quantidade e tipos dos argumentos das funções e os retornos necessários.
+
+Por exemplo, usar uma variável que não foi declarada gera um erro semântico,
+mesmo que a escrita da expressão esteja sintaticamente correta.
+
+### Passo 1 — escolher um arquivo para analisar
+
+Neste exemplo, vamos usar `tests/semantico/04_vetores_e_parametro_array.c`.
+
+### Passo 2 — executar na versão escolhida
+
+**Python:**
 
 ```bash
 python minic.py tests/semantico/04_vetores_e_parametro_array.c
+```
+
+**C:** depois da compilação indicada na preparação:
+
+```bash
 ./minic tests/semantico/04_vetores_e_parametro_array.c
+```
+
+### Passo 3 — conferir o resultado
+
+Quando o programa é aceito, aparece:
+
+```text
+Análise semântica concluída: 0 erros; programa aceito.
+```
+
+Quando há erros semânticos, o terminal mostra os códigos dos erros, suas
+posições no arquivo e a quantidade de erros encontrados.
+
+### Passo 4 — rodar os testes do professor
+
+Para testar todos os arquivos da pasta `tests/semantico`, use o script
+correspondente à versão escolhida:
+
+**Python:**
+
+```bash
 ./testes_semanticos_py.sh minic.py tests/semantico
+```
+
+**C:**
+
+```bash
 ./testes_semanticos_c.sh minic.c tests/semantico
 ```
 
-Sucesso produz `Análise semântica concluída: 0 erros; programa aceito.` e status
-0. Erros semânticos produzem os diagnósticos SEMxxx ordenados por posição, a
-contagem final e status 1. A saída segue os bytes dos gabaritos originais:
-CRLF entre diagnósticos e ausência de newline final.
-
-## Verificar o projeto completo
-
-```bash
-make test
-# alternativa sem make:
-python tests/validar_compilador.py
-```
-
-O verificador compila os pontos de entrada usados pelo professor, compara C e
-Python, executa os 50 testes sintáticos, os 20 semânticos, 29 regressões e os
-10 casos disponíveis da etapa 1. As saídas novas ficam em `Minic/build`, sem
-sobrescrever os resultados antigos versionados da etapa 1.
-
-[Resultados e limitações dos gabaritos](Minic/RESULTADOS_TESTES.md): o caso
-sintático 24 contém um parêntese excedente na referência; o fixture léxico i06
-não tem fonte de entrada no material fornecido. Os arquivos originais dos
-testes não foram corrigidos para ocultar essas limitações.
-
-## Manter a continuidade entre as etapas
-
-O contrato de tokens e nós está em `src/common.*`. O parser é único por
-linguagem e é consumido pelos dois pontos de entrada. O semântico recebe a
-AST; ele não relê o código com outro scanner nem reconstrói a sintaxe.
-
-A gramática inclui variáveis e inicializadores, vetores unidimensionais,
-parâmetros escalar/vetor, funções com corpo, blocos, `if/else`, `while`,
-`return`, chamadas, atribuições e operadores. Reconhecer um token na etapa 1
-não significa que uma construção esteja prevista na gramática das etapas
-seguintes: ponteiros, structs, diretivas de pré-processador, `for`, `break` e
-`continue` não fazem parte da gramática sintática fornecida. `int f();` é
-rejeitado conforme o teste sintático 48; funções precisam de corpo.
-
-O semântico verifica escopos com sombreamento, duplicações, chamadas e tipos,
-promoção `int → float`, condições e operadores lógicos booleanos, índices
-inteiros, parâmetros vetor, destinos atribuíveis, uso de void e cobertura de
-retorno em funções não void. As condições não usam a regra de valores
-escalares da linguagem C: MINIC exige `bool`.
-
-Depois de alterar `src/lexer/lexer.l`, regenere o adaptador C:
-
-```bash
-make scanner
-# ou: python tools/gerar_scanner.py
-make test
-```
-
-Essa geração requer Flex 2.6.4 e GNU M4. O teste verifica a assinatura da
-especificação para detectar um scanner C desatualizado. Alterações léxicas
-precisam manter também a versão Python equivalente. Não edite manualmente o
-arquivo `src/scanner/scanner.c` gerado.
-
-O `Makefile` compila os módulos C separados. Os pontos de entrada também
-suportam a compilação em um único comando exigida pelos scripts do professor.
-O compilador implementa o frontend de análise; não gera executável nem código
-de máquina do programa MINIC.
+Os scripts comparam as saídas com os gabaritos e mostram quais testes passaram.
+Os resultados da revisão estão em [Resultados dos testes](Minic/RESULTADOS_TESTES.md).
