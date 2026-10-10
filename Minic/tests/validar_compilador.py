@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Validação das três etapas, gabaritos originais e equivalência C/Python."""
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
@@ -31,6 +32,15 @@ def compact(text): return re.sub(r'\s+', '', text)
 
 def main():
     BUILD.mkdir(exist_ok=True)
+    sys.path.insert(0, str(ROOT))
+    from src.common import write_output
+    # Simula encoding Windows e tradução de LF, incluindo acentos/CRLF.
+    raw = io.BytesIO()
+    windows_stream = io.TextIOWrapper(raw, encoding='cp1252', newline='\r\n')
+    message = 'SEM001 — linha 1, coluna 1: análise.\r\nResumo.'
+    write_output(message, windows_stream)
+    assert raw.getvalue() == message.encode('utf-8')
+    print('Saída UTF-8: bytes preservados sob encoding CP1252 e tradução de LF simulados.')
     digest = hashlib.sha256((ROOT/'src/lexer/lexer.l').read_bytes().replace(b'\r\n', b'\n')).hexdigest()
     assert f'SHA256: {digest}' in (ROOT/'src/scanner/scanner.c').read_text().splitlines()[0], 'Scanner C desatualizado: execute make scanner'
     for entry in ('parser', 'minic'):

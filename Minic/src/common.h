@@ -26,6 +26,7 @@ typedef struct Context {
 } Context;
 
 void *allocate(Context *ctx, size_t size);
+void configure_output(void);
 char *copy_text(Context *ctx, const char *text, size_t length);
 char *format_text(Context *ctx, const char *format, ...);
 char *source_text(Context *ctx, Node *node);

@@ -1,6 +1,10 @@
 # Resultados de validação das três etapas
 
 Execução em 10/10/2026, Linux, Python 3.12.14, GCC 14.2.0 e Flex 2.6.4.
+Não houve execução nativa em Windows. A saída UTF-8 Python foi verificada
+também com stream CP1252 e tradução de LF para CRLF simulados; os bytes
+permaneceram idênticos. O C configura saída binária no Windows, e os scripts
+Bash têm checkout LF explícito em `.gitattributes`.
 
 | Verificação | Python | C |
 |---|---:|---:|

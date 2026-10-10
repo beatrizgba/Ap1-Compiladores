@@ -2,6 +2,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#ifdef _WIN32
+#include <io.h>
+#include <fcntl.h>
+#endif
+
+void configure_output(void) {
+    /* Evita CRCRLF e mantém a AST/diagnósticos iguais às saídas Python. */
+#ifdef _WIN32
+    _setmode(_fileno(stdout), _O_BINARY);
+    _setmode(_fileno(stderr), _O_BINARY);
+#endif
+}
 
 static void memory_failure(void) { fputs("ERRO ENTRADA: memória insuficiente\n", stderr); exit(2); }
 void *allocate(Context *ctx, size_t size) {

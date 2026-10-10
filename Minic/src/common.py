@@ -1,5 +1,13 @@
 """Contrato comum às três etapas: tokens, AST e diagnósticos."""
 from dataclasses import dataclass, field
+import sys
+
+
+def write_output(text, stream=None):
+    """UTF-8 exato, sem conversão adicional de LF no Windows."""
+    stream = sys.stdout if stream is None else stream
+    stream.buffer.write(text.encode('utf-8'))
+    stream.buffer.flush()
 
 
 @dataclass

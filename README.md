@@ -48,6 +48,8 @@ Python 3 não precisa de pacotes externos; PLY não é utilizado. A versão C
 precisa de GCC. Os scripts oficiais precisam de Bash (no Windows, pode ser
 usado Git Bash ou WSL). `make` facilita a compilação, mas é opcional. O C
 gerado está versionado; Flex só é necessário ao alterar as regras léxicas.
+Os pontos de entrada emitem UTF-8 sem tradução de quebras de linha; os
+scripts `.sh` mantêm LF mesmo com Git configurado para CRLF no Windows.
 
 Todos os comandos abaixo são executados na pasta `Minic`:
 
