@@ -7,14 +7,22 @@ typedef struct Allocation { void *data; struct Allocation *next; } Allocation;
 typedef struct Token { char *kind, *text; int line, column; size_t start, end; } Token;
 typedef enum { N_PROGRAM, N_FUNCTION, N_PARAM, N_DECL, N_BLOCK, N_IF, N_WHILE,
                N_RETURN, N_EXPR, N_EMPTY, N_LITERAL, N_ID, N_CALL, N_INDEX,
-               N_ASSIGN, N_BINARY, N_UNARY } Kind;
+               N_ASSIGN, N_BINARY, N_UNARY, N_BREAK, N_CONTINUE } Kind;
+typedef struct Symbol Symbol;
+enum { FLOW_NORMAL=1, FLOW_RETURN=2, FLOW_BREAK=4, FLOW_CONTINUE=8 };
 typedef struct Node {
     Kind kind; Token *token; size_t end;
     char *value, *type_name;
     struct Node *children, *next, *left, *right, *body, *otherwise;
     struct Node *size, *initializer, *params;
     int array;
+    /* Anotações semânticas preservadas para a próxima etapa. */
+    const char *semantic_type, *category, *conversion_to, *expected_type;
+    Symbol *symbol;
+    long long array_size;
+    int has_array_size, assignable, loop_depth, flow;
 } Node;
+struct Symbol { Node *node; const char *typ; int function; Symbol *next; };
 typedef struct Diagnostic { char *code, *message; int line, column; size_t order; } Diagnostic;
 typedef struct Context {
     char *source;

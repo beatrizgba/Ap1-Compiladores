@@ -18,11 +18,12 @@ def scan(source):
         return min(len(source), offsets[min(item['line'] - 1, len(offsets) - 1)] + item['column'] - 1)
 
     diagnostics = errors.getvalue().splitlines()
+    failure = None
     if diagnostics:
         item = json.loads(diagnostics[0])
         start = position(item)
         token = Token('ERROR', item['lexeme'], item['line'], item['column'], start, start)
-        raise CompileError('LEXICO', token, item['error'])
+        failure = CompileError('LEXICO', token, item['error'])
     result = []
     for line in out.getvalue().splitlines():
         item = json.loads(line)
@@ -33,6 +34,8 @@ def scan(source):
             index = next(i for i, char in enumerate(token.text) if not char.isascii())
             bad = Token('ERROR', token.text[index], token.line, token.column + index,
                         token.start + index, token.start + index + 1)
-            raise CompileError('LEXICO', bad, 'UNKNOWN_SYMBOL')
+            if failure is None or (bad.line, bad.column) < (failure.token.line, failure.token.column):
+                failure = CompileError('LEXICO', bad, 'UNKNOWN_SYMBOL')
         result.append(token)
+    if failure is not None: raise failure
     return result

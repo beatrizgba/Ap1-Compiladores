@@ -24,7 +24,8 @@ static int is_type(Parser *p) {
 static Token *type_token(Parser *p) { if(!is_type(p))parse_fail(p,"tipo esperado");return take(p); }
 static Token *identifier(Parser *p) { if(strcmp(current(p)->kind,"IDENT"))parse_fail(p,"identificador esperado");return take(p); }
 static Node *node(Parser *p,Kind kind,Token *token,size_t end) {
-    Node *n=allocate(p->ctx,sizeof(*n));n->kind=kind;n->token=token;n->end=end;n->value="";n->type_name="";return n;
+    Node *n=allocate(p->ctx,sizeof(*n));n->kind=kind;n->token=token;n->end=end;n->value="";n->type_name="";
+    n->semantic_type=n->category=n->conversion_to=n->expected_type="";n->flow=FLOW_NORMAL;return n;
 }
 static void append(Node **head,Node **tail,Node *n) {
     if(!*head)*head=n;else (*tail)->next=n;
@@ -82,6 +83,10 @@ static Node *statement(Parser *p) {
     }
     if(match(p,"return")) {
         n=node(p,N_RETURN,start,start->end);if(!is_text(p,";"))n->left=expression(p);n->end=expect(p,";")->end;return n;
+    }
+    if(is_text(p,"break")||is_text(p,"continue")) {
+        Kind kind=is_text(p,"break")?N_BREAK:N_CONTINUE;
+        take(p);return node(p,kind,start,expect(p,";")->end);
     }
     if(match(p,";"))return node(p,N_EMPTY,start,start->end);
     n=node(p,N_EXPR,start,start->end);n->left=expression(p);n->end=expect(p,";")->end;return n;
@@ -173,6 +178,8 @@ void print_ast(Node *n,FILE *out) {
         case N_RETURN:fputs("Return(",out);print_ast(n->left,out);break;
         case N_IF:fputs("If(",out);print_ast(n->left,out);fputs(", ",out);print_ast(n->body,out);fputs(", ",out);print_ast(n->otherwise,out);break;
         case N_WHILE:fputs("While(",out);print_ast(n->left,out);fputs(", ",out);print_ast(n->body,out);break;
+        case N_BREAK:fputs("Break(",out);break;
+        case N_CONTINUE:fputs("Continue(",out);break;
         default:fputs("EmptyStmt",out);return;
     }
     fputc(')',out);

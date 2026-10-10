@@ -7,4 +7,5 @@
 | Parser: entradas inválidas | 25/25 rejeitadas, sem AST | 25/25 rejeitadas, sem AST |
 | AST das entradas válidas, ignorando apenas espaços | 24/25 iguais à referência | 24/25 iguais à referência |
 | Semântico: gabaritos e scripts originais | 20/20 | 20/20 |
-| Regressões adicionais | 29/29 | 29/29 |
+| Regressões adicionais | 62/62 | 62/62 |
+| AST anotada: tipos, símbolos, conversões e contextos | Validada | Validada |

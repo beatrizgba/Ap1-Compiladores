@@ -36,6 +36,16 @@ class Node:
     initializer: 'Node | None' = None
     params: list = field(default_factory=list)
     array: bool = False
+    # A análise preenche estes atributos sem alterar a estrutura sintática.
+    semantic_type: str = ''
+    symbol: object = field(default=None, repr=False)
+    category: str = ''
+    conversion_to: str = ''
+    expected_type: str = ''
+    array_size: int | None = None
+    assignable: bool = False
+    loop_depth: int = 0
+    flow: int = 1
 
     @property
     def line(self): return self.token.line

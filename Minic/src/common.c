@@ -81,6 +81,7 @@ void print_failure(Context *ctx) {
     fprintf(stderr,"ERRO %s linha %d, coluna %d: %s\n",ctx->stage,ctx->failure_line,ctx->failure_column,ctx->failure);
 }
 void add_error(Context *ctx, const char *code, Node *n, const char *message) {
+    if(ctx->error_count>=100)return;
     if(ctx->error_count==ctx->error_capacity) {
         size_t capacity=ctx->error_capacity ? 2*ctx->error_capacity : 16;
         Diagnostic *data=realloc(ctx->errors,capacity*sizeof(*data));

@@ -104,6 +104,9 @@ class Parser:
         if self.match('return'):
             expr = None if self.current.text == ';' else self.expression()
             return Node('return', start, self.expect(';').end, left=expr)
+        if start.text in {'break', 'continue'}:
+            self.take()
+            return Node(start.text, start, self.expect(';').end)
         if self.match(';'): return Node('empty', start, start.end)
         expr = self.expression()
         return Node('expr', start, self.expect(';').end, left=expr)
@@ -185,4 +188,5 @@ def render_ast(n):
     if k == 'return': return f'Return({f(n.left)})'
     if k == 'if': return f'If({f(n.left)}, {f(n.body)}, {f(n.otherwise)})'
     if k == 'while': return f'While({f(n.left)}, {f(n.body)})'
+    if k in {'break', 'continue'}: return k.capitalize() + '()'
     return 'EmptyStmt'

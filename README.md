@@ -21,6 +21,7 @@ flowchart LR
 
 ```text
 Minic/
+├── scanner.py / scanner.c     # entrada da etapa 1
 ├── parser.py / parser.c       # entrada da etapa 2
 ├── minic.py / minic.c         # entrada da etapa 3
 ├── Makefile
@@ -31,55 +32,94 @@ Minic/
 │   ├── semantico/            # análise da AST, em C e Python
 │   └── common.py / common.h / common.c
 ├── tools/gerar_scanner.py     # gera o scanner C a partir de lexer.l
+├── testar_parser_python.sh   # testes sintáticos do projeto
+├── testar_parser_c.sh
 ├── testes_semanticos_py.sh    # script original do professor
 ├── testes_semanticos_c.sh     # script original do professor
 └── tests/
-    ├── casos-invalidos/      # fixtures léxicos
-    ├── casos-programas-c/    # fixtures léxicos
+    ├── casos-invalidos/      # casos léxicos
+    ├── casos-programas-c/    # casos léxicos
     ├── parser/              # 50 casos sintáticos fornecidos
     ├── semantico/           # 20 casos e gabaritos fornecidos
     ├── regressao/           # casos adicionais
+    ├── scripts_professor/   # scripts originais de scanner e parser
     └── validar_compilador.py # valida as três etapas e C × Python
 ```
 
-## Preparar e executar
+## Preparar e executar no VS Code
 
-### Passo 1 — conferir as ferramentas
+### Passo 1 — instalar as ferramentas
 
-Para usar a versão Python, instale o **Python 3**. Ela não precisa de bibliotecas
-extras. Para usar a versão C, instale também o **GCC**.
+Usamos **Python 3.10 ou superior** e **GCC**. A versão Python não precisa de
+bibliotecas extras.
 
-No Windows, abra o terminal **Git Bash** no VS Code para executar os comandos
-abaixo e os scripts de testes do professor. O GCC precisa estar disponível
-nesse terminal.
-
-Confira a instalação da versão que você vai usar:
+No Windows, instale o [Python](https://www.python.org/downloads/windows/) e o
+[MSYS2](https://www.msys2.org/). Mantenha a pasta padrão do MSYS2: `C:\msys64`.
+Depois, abra **MSYS2 UCRT64** pelo menu Iniciar e execute:
 
 ```bash
-python --version
-gcc --version
+pacman -S --needed mingw-w64-ucrt-x86_64-gcc diffutils
 ```
 
-### Passo 2 — entrar na pasta do projeto
+Esse comando instala o compilador C e a ferramenta que compara as saídas com
+os gabaritos. O Bash e as demais ferramentas básicas vêm com o MSYS2.
+Se já estiver tudo instalado, siga para o próximo passo.
 
-Abra a pasta `Ap1-Compiladores` no VS Code. No terminal, entre na pasta `Minic`:
+### Passo 2 — abrir o projeto e o terminal
 
-```bash
+Abra a pasta `Ap1-Compiladores` no VS Code. Vá em **Terminal → Novo Terminal**
+e escolha **PowerShell**. Entre na pasta do compilador:
+
+```powershell
 cd Minic
 ```
 
-Execute todos os próximos comandos dentro dessa pasta.
+Execute os próximos comandos dentro de `Minic`. Se o terminal já estiver nessa
+pasta, não precisa repetir `cd Minic`.
 
-### Passo 3 — compilar, se for usar C
+### Passo 3 — configurar os caminhos no terminal
 
-Compile os programas das etapas 2 e 3:
+No PowerShell, disponibilize o Python e as ferramentas do MSYS2:
 
-```bash
+```powershell
+$env:Path = "$env:LOCALAPPDATA\Python\bin;C:\msys64\ucrt64\bin;C:\msys64\usr\bin;" + $env:Path
+```
+
+O caminho do Python acima corresponde à instalação pelo gerenciador Python
+no Windows. Se sua instalação estiver em outra pasta, use o diretório que
+contém o `python.exe`. Para localizar a instalação, execute
+`py -c "import sys; print(sys.executable)"`.
+
+Esse ajuste vale apenas para o terminal atual. Repita-o ao abrir outro terminal.
+
+### Passo 4 — conferir as ferramentas
+
+```powershell
+python --version
+python3 --version
+gcc --version
+bash --version
+bash -c "diff --version"
+```
+
+Todos devem mostrar suas versões. Os scripts do professor usam o comando
+`python3`, por isso conferimos também esse nome. Se aparecer a mensagem da
+Microsoft Store, confira se a instalação real do Python vem antes de
+`Microsoft\WindowsApps` no PATH.
+
+### Passo 5 — compilar, se for executar C manualmente
+
+```powershell
+gcc -std=c11 -Wall -Wextra scanner.c -o scanner
 gcc -std=c11 -Wall -Wextra parser.c -o parser
 gcc -std=c11 -Wall -Wextra minic.c -o minic
 ```
 
-Se for usar Python, pode seguir direto para a etapa desejada.
+Os scripts de testes e o verificador completo compilam os programas C
+automaticamente. Esse passo é necessário para os exemplos individuais em C.
+
+No Linux, usamos as mesmas ferramentas e executamos os binários com `./scanner`,
+`./parser` e `./minic`. O ajuste de PATH em PowerShell é específico do Windows.
 
 ## Etapa 1 — analisador léxico (scanner)
 
@@ -88,26 +128,26 @@ os tokens, como palavras reservadas, nomes de variáveis, números e operadores.
 Também informa a linha e a coluna de cada token e aponta erros léxicos.
 
 Por exemplo, em `int idade = 20;`, ele identifica `int`, `idade`, `=`, `20` e `;`.
-Preservamos os arquivos originais dessa etapa.
+Preservamos os arquivos originais dessa etapa e criamos as entradas `scanner.py`
+e `scanner.c` para executá-los com saída consistente no terminal.
 
 ### Passo 1 — escolher um arquivo para analisar
 
-Neste exemplo, vamos usar `tests/casos-programas-c/c01_fibonacci.c`.
-Você pode substituir esse caminho pelo arquivo MINIC que quiser analisar.
+Neste exemplo, usamos `tests/casos-programas-c/c01_fibonacci.c`.
+Você pode substituir esse caminho pelo seu arquivo MINIC.
 
 ### Passo 2 — executar na versão escolhida
 
 **Python:**
 
-```bash
-python src/lexer/lexer.py tests/casos-programas-c/c01_fibonacci.c
+```powershell
+python scanner.py tests/casos-programas-c/c01_fibonacci.c
 ```
 
-**C:** compile o scanner e depois execute:
+**C:** depois da compilação indicada na preparação:
 
-```bash
-gcc -std=c11 -D_POSIX_C_SOURCE=200809L src/lexer/lexer.c -o lexer
-./lexer tests/casos-programas-c/c01_fibonacci.c
+```powershell
+.\scanner.exe tests/casos-programas-c/c01_fibonacci.c
 ```
 
 ### Passo 3 — conferir o resultado
@@ -123,32 +163,46 @@ uma árvore sintática (AST), que representa a estrutura do programa.
 
 **Corrigimos a versão entregue anteriormente:** ajustamos a leitura dos tokens,
 o reconhecimento de declarações, vetores, funções e expressões, a construção
-da árvore e o tratamento de erros. Integramos as versões Python e C
-à etapa 1 e validamos seu funcionamento com os testes sintáticos do professor.
+da árvore e o tratamento de erros. Integramos as versões Python e C à etapa 1
+e incluímos `break` e `continue`, conforme o conteúdo da análise semântica.
 
 ### Passo 1 — escolher um arquivo para analisar
 
-Neste exemplo, vamos usar `tests/parser/casos/25_programa_integrado/codigo.c`.
+Neste exemplo, usamos `tests/parser/casos/25_programa_integrado/codigo.c`.
 
 ### Passo 2 — executar na versão escolhida
 
 **Python:**
 
-```bash
+```powershell
 python parser.py tests/parser/casos/25_programa_integrado/codigo.c
 ```
 
 **C:** depois da compilação indicada na preparação:
 
-```bash
-./parser tests/parser/casos/25_programa_integrado/codigo.c
+```powershell
+.\parser.exe tests/parser/casos/25_programa_integrado/codigo.c
 ```
+
+A chamada exigida pelo professor em Bash/Linux é `./parser codigo.c`.
 
 ### Passo 3 — conferir o resultado
 
 Se a sintaxe estiver correta, o terminal mostra a árvore do programa.
 Se houver um erro léxico ou sintático, mostra o erro e não imprime uma árvore
 incompleta.
+
+### Passo 4 — executar os testes sintáticos
+
+```powershell
+bash testar_parser_python.sh tests/parser parser.py
+bash testar_parser_c.sh tests/parser parser.c
+```
+
+Esperamos **50/50**, com a ressalva indicada para o parêntese excedente no
+**gabarito do caso 24**. Usamos scripts do projeto que conferem aceitação,
+rejeição e estrutura da AST. Preservamos os scripts originais do professor
+em `tests/scripts_professor` para consulta.
 
 ## Etapa 3 — analisador semântico
 
@@ -157,30 +211,31 @@ Ele usa a árvore da etapa 2 para verificar se o programa faz sentido segundo
 as regras do MINIC. Implementamos as seguintes verificações:
 
 - Uso de variáveis declaradas e nomes repetidos no mesmo escopo.
-- Compatibilidade dos tipos em atribuições, operações e chamadas de funções.
-- Uso de vetores e índices inteiros.
+- Compatibilidade dos tipos e promoção permitida de `int` para `float`.
+- Uso de vetores, índices inteiros e limites de índices constantes.
 - Condições booleanas em `if` e `while`.
+- Uso de `break` e `continue` dentro de laços.
 - Quantidade e tipos dos argumentos das funções e os retornos necessários.
 
-Por exemplo, usar uma variável que não foi declarada gera um erro semântico,
-mesmo que a escrita da expressão esteja sintaticamente correta.
+Também guardamos na AST os tipos, os símbolos resolvidos, as conversões e os
+contextos necessários para a próxima etapa do compilador.
 
 ### Passo 1 — escolher um arquivo para analisar
 
-Neste exemplo, vamos usar `tests/semantico/04_vetores_e_parametro_array.c`.
+Neste exemplo, usamos `tests/semantico/04_vetores_e_parametro_array.c`.
 
 ### Passo 2 — executar na versão escolhida
 
 **Python:**
 
-```bash
+```powershell
 python minic.py tests/semantico/04_vetores_e_parametro_array.c
 ```
 
 **C:** depois da compilação indicada na preparação:
 
-```bash
-./minic tests/semantico/04_vetores_e_parametro_array.c
+```powershell
+.\minic.exe tests/semantico/04_vetores_e_parametro_array.c
 ```
 
 ### Passo 3 — conferir o resultado
@@ -194,22 +249,76 @@ Análise semântica concluída: 0 erros; programa aceito.
 Quando há erros semânticos, o terminal mostra os códigos dos erros, suas
 posições no arquivo e a quantidade de erros encontrados.
 
-### Passo 4 — rodar os testes do professor
+### Passo 4 — executar os scripts do professor
 
-Para testar todos os arquivos da pasta `tests/semantico`, use o script
-correspondente à versão escolhida:
+No mesmo PowerShell, execute um comando por vez:
 
-**Python:**
+```powershell
+bash testes_semanticos_py.sh minic.py tests/semantico
+```
+
+```powershell
+bash testes_semanticos_c.sh minic.c tests/semantico
+```
+
+Esperamos, ao final de cada script:
+
+```text
+Resultado: 20/20 aprovados; 0 reprovados.
+```
+
+Alguns arquivos contêm erros de propósito. O teste passa quando o analisador
+aponta exatamente os erros previstos no gabarito.
+
+Em Bash, também podemos usar diretamente os comandos exigidos pelo professor:
 
 ```bash
 ./testes_semanticos_py.sh minic.py tests/semantico
-```
-
-**C:**
-
-```bash
 ./testes_semanticos_c.sh minic.c tests/semantico
 ```
 
-Os scripts comparam as saídas com os gabaritos e mostram quais testes passaram.
+## Testar o projeto completo no VS Code
+
+### Passo 1 — executar o verificador
+
+Com as ferramentas disponíveis e o terminal dentro de `Minic`, execute:
+
+```powershell
+python tests/validar_compilador.py
+```
+
+Ele compila os programas C e verifica as três etapas, os scripts de testes,
+as regressões e as anotações da AST, comparando as versões Python e C.
+
+### Passo 2 — conferir os resultados
+
+Esperamos:
+
+- Etapa 1: **10/10** em Python e C, considerando os arquivos disponíveis.
+- Etapa 2: **25/25 válidos aceitos** e **25/25 inválidos rejeitados**.
+- Etapa 3: **20/20** em Python e C.
+- Testes adicionais: **62/62**, com resultados equivalentes entre as versões.
+- AST anotada: tipos, símbolos, conversões e contextos conferidos em C e Python.
+
+A observação do **caso 24** é uma diferença no gabarito original. O aviso do
+**i06** informa que seu arquivo de entrada não foi fornecido. Mantivemos essas
+ressalvas visíveis e preservamos os arquivos originais.
+
+### Passo 3 — confirmar o encerramento
+
+Logo depois do verificador, execute no PowerShell:
+
+```powershell
+$LASTEXITCODE
+```
+
+Esperamos **`0`**, sem `Traceback` ou `[FALHA]` na execução.
+Se aparecer `WinError 4551`, o Windows bloqueou um executável por uma política
+de segurança; a parte bloqueada ainda não foi testada. Consulte o controle de
+aplicativos do Windows para identificar a restrição.
+
+Os testes salvam arquivos locais em `Minic/build`. Não atualizam
+`RESULTADOS_TESTES.md` e não enviam mudanças ao GitHub automaticamente.
+
 Registramos os resultados em [Resultados dos testes](Minic/RESULTADOS_TESTES.md).
+As decisões da linguagem estão em [Regras do MINIC](Minic/REGRAS_MINIC.md).

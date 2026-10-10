@@ -4,4 +4,6 @@ Minic/build/
 Minic/parser
 Minic/minic
 Minic/lexer
+Minic/scanner
+Minic/*.exe
 Minic/tests/novos-resultados/
