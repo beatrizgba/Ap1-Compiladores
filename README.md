@@ -88,7 +88,7 @@ os tokens, como palavras reservadas, nomes de variáveis, números e operadores.
 Também informa a linha e a coluna de cada token e aponta erros léxicos.
 
 Por exemplo, em `int idade = 20;`, ele identifica `int`, `idade`, `=`, `20` e `;`.
-Os arquivos originais dessa etapa foram preservados.
+Preservamos os arquivos originais dessa etapa.
 
 ### Passo 1 — escolher um arquivo para analisar
 
@@ -123,8 +123,8 @@ uma árvore sintática (AST), que representa a estrutura do programa.
 
 **Corrigimos a versão entregue anteriormente:** ajustamos a leitura dos tokens,
 o reconhecimento de declarações, vetores, funções e expressões, a construção
-da árvore e o tratamento de erros. As versões Python e C foram integradas
-à etapa 1 e revisadas com os testes sintáticos fornecidos pelo professor.
+da árvore e o tratamento de erros. Integramos as versões Python e C
+à etapa 1 e validamos seu funcionamento com os testes sintáticos do professor.
 
 ### Passo 1 — escolher um arquivo para analisar
 
@@ -152,9 +152,9 @@ incompleta.
 
 ## Etapa 3 — analisador semântico
 
-**O que fizemos:** revisamos e corrigimos o analisador semântico em Python e C.
+**O que fizemos:** desenvolvemos o analisador semântico em Python e C.
 Ele usa a árvore da etapa 2 para verificar se o programa faz sentido segundo
-as regras do MINIC. Entre as verificações estão:
+as regras do MINIC. Implementamos as seguintes verificações:
 
 - Uso de variáveis declaradas e nomes repetidos no mesmo escopo.
 - Compatibilidade dos tipos em atribuições, operações e chamadas de funções.
@@ -212,4 +212,4 @@ correspondente à versão escolhida:
 ```
 
 Os scripts comparam as saídas com os gabaritos e mostram quais testes passaram.
-Os resultados da revisão estão em [Resultados dos testes](Minic/RESULTADOS_TESTES.md).
+Registramos os resultados em [Resultados dos testes](Minic/RESULTADOS_TESTES.md).
