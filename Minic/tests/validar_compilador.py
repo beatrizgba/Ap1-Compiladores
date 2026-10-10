@@ -42,7 +42,7 @@ def main():
     assert raw.getvalue() == message.encode('utf-8')
     print('Saída UTF-8: bytes preservados sob encoding CP1252 e tradução de LF simulados.')
     digest = hashlib.sha256((ROOT/'src/lexer/lexer.l').read_bytes().replace(b'\r\n', b'\n')).hexdigest()
-    assert f'SHA256: {digest}' in (ROOT/'src/scanner/scanner.c').read_text().splitlines()[0], 'Scanner C desatualizado: execute make scanner'
+    assert f'SHA256: {digest}' in (ROOT/'src/scanner/scanner.c').read_text(encoding='utf-8').splitlines()[0], 'Scanner C desatualizado: execute make scanner'
     for entry in ('parser', 'minic'):
         subprocess.run(['gcc','-std=c11','-Wall','-Wextra','-Wpedantic','-Werror',str(ROOT/(entry+'.c')),'-o',str(BUILD/entry)],check=True,cwd=ROOT)
 
@@ -54,7 +54,7 @@ def main():
         if int(case.name[:2]) <= 25:
             assert result.returncode == 0 and not result.stderr, case
             actual = compact(result.stdout.decode())
-            expected = compact((case/'ast.esperada.txt').read_text())
+            expected = compact((case/'ast.esperada.txt').read_text(encoding='utf-8'))
             assert actual.count('(') == actual.count(')'), case
             if actual == expected: exact += 1
             else:
@@ -78,7 +78,7 @@ def main():
         subprocess.run(['bash', str(ROOT/f'testes_semanticos_{language}.sh'),f'minic.{language}',str(ROOT/'tests/semantico')],check=True,cwd=ROOT,env=ENV,stdout=subprocess.DEVNULL)
     print('Scripts originais do professor: Python 20/20; C 20/20.')
 
-    regressions = json.loads((ROOT/'tests/regressao/casos.json').read_text())
+    regressions = json.loads((ROOT/'tests/regressao/casos.json').read_text(encoding='utf-8'))
     regressions.extend([
         {'nome':'256_argumentos','fonte':'int f('+','.join(f'int a{i}' for i in range(256))+'){ return 0; } int principal(){ return f('+','.join('1' for _ in range(256))+'); }','status':0,'codigos':[]},
         {'nome':'escopos_profundos','fonte':'int principal(){'+'{'*125+'int x; {} x=1;'+'}'*125+'return 0;}','status':0,'codigos':[]},
