@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+Minic/build/
+Minic/parser
+Minic/minic
+Minic/lexer
+Minic/tests/novos-resultados/

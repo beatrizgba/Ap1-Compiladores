@@ -1,0 +1,26 @@
+#!/usr/bin/env python3
+"""Etapa 2: lê fonte MINIC e imprime AST somente após análise completa."""
+import sys
+from pathlib import Path
+from src.common import CompileError
+from src.scanner.scanner import scan
+from src.parser.parser import parse, render_ast
+
+
+def main():
+    if len(sys.argv) != 2:
+        print('Uso: python parser.py codigo.c', file=sys.stderr)
+        return 2
+    try:
+        source = Path(sys.argv[1]).read_text(encoding='utf-8')
+        print(render_ast(parse(scan(source))))
+    except (OSError, UnicodeError) as error:
+        print(f'ERRO ENTRADA: {error}', file=sys.stderr)
+        return 2
+    except CompileError as error:
+        print(error.render(), file=sys.stderr)
+        return 1
+    return 0
+
+
+if __name__ == '__main__': raise SystemExit(main())

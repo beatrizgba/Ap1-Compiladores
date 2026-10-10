@@ -1,194 +1,159 @@
-# AP 1 - Analisador Léxico (Linguagem MINIC)
+# Compilador MINIC — etapas 1, 2 e 3
 
-Este repositório contém a implementação da **Etapa 1** do projeto de construção de um compilador para a linguagem **MINIC**, desenvolvido para a disciplina de **Compiladores**.
+Projeto da disciplina de Compiladores, com versões em Python e C. As três
+etapas compõem um único frontend: o scanner fornece tokens, o parser constrói
+uma árvore sintática (AST), e o analisador semântico verifica essa mesma árvore.
 
-O objetivo desta etapa é implementar um **analisador léxico**, responsável por identificar os tokens válidos da linguagem, como palavras reservadas, identificadores, literais, operadores e delimitadores, além de reportar erros relacionados a símbolos ou formações inválidas.
+Integrantes: Ana Clara T. Coser, Beatriz Gabrielly Batista de Almeida e
+Vinicius Henrique Santos.
 
-O projeto possui implementações do analisador léxico em **Python** e em **C utilizando Flex**, permitindo a validação dos resultados por meio de uma suíte de testes automatizados.
+```mermaid
+flowchart LR
+    Fonte[Código MINIC] --> Scanner[Etapa 1: scanner]
+    Scanner --> Tokens[Tokens com lexema e posição]
+    Tokens --> Parser[Etapa 2: parser]
+    Parser --> AST[Árvore sintática]
+    AST --> Semantico[Etapa 3: analisador semântico]
+    Semantico --> Resultado[Diagnósticos e resultado]
+```
 
----
-
-## 👥 Integrantes do Grupo
-
-* **Ana Clara T. Coser** — RA: 2401456
-* **Beatriz Gabrielly Batista de Almeida** — RA: 2400276
-* **Vinicius Henrique Santos** — RA: 2400306
-
----
-
-## 📁 Estrutura do Repositório
+## Organização
 
 ```text
-.
+Minic/
+├── parser.py / parser.c       # entrada da etapa 2
+├── minic.py / minic.c         # entrada da etapa 3
+├── Makefile
 ├── src/
-│   └── lexer/
-│       ├── lexer.py          # Analisador Léxico em Python
-│       ├── lexer.l           # Especificação do analisador em Flex
-│       ├── lexer.c           # Código C gerado pelo Flex
-│       └── lexer.exe         # Executável do analisador em C
-│
-├── tests/
-│   ├── casos-invalidos/      # Casos com erros léxicos (.minic e .jsonl)
-│   ├── casos-programas-c/    # Programas válidos em C/MINIC (.c e .jsonl)
-│   ├── resultados/           # Arquivos de saída gerados pela suíte de testes
-│   │   └── python/           # Saídas em JSONL dos testes em Python
-│   ├── check_fixtures.py     # Script de verificação das fixtures
-│   └── run_tests.py          # Script de execução dos testes
-│
-├── .gitignore
-└── README.md
+│   ├── lexer/                # fontes originais da etapa 1, preservados
+│   ├── scanner/              # adaptadores das mesmas regras da etapa 1
+│   ├── parser/               # parser compartilhado entre etapas 2 e 3
+│   ├── semantico/            # análise da AST, em C e Python
+│   └── common.py / common.h / common.c
+├── tools/gerar_scanner.py     # gera o scanner C a partir de lexer.l
+├── testes_semanticos_py.sh    # script original do professor
+├── testes_semanticos_c.sh     # script original do professor
+└── tests/
+    ├── casos-invalidos/      # fixtures léxicos
+    ├── casos-programas-c/    # fixtures léxicos
+    ├── parser/              # 50 casos sintáticos fornecidos
+    ├── semantico/           # 20 casos e gabaritos fornecidos
+    ├── regressao/           # casos adicionais
+    └── validar_compilador.py # valida as três etapas e C × Python
 ```
 
----
+## Preparar e executar
 
-## 🛠️ Tecnologias Utilizadas
+Python 3 não precisa de pacotes externos; PLY não é utilizado. A versão C
+precisa de GCC. Os scripts oficiais precisam de Bash (no Windows, pode ser
+usado Git Bash ou WSL). `make` facilita a compilação, mas é opcional. O C
+gerado está versionado; Flex só é necessário ao alterar as regras léxicas.
 
-* Python
-* C
-* Flex / WinFlex
-* GCC
-* JSONL
-* PowerShell
+Todos os comandos abaixo são executados na pasta `Minic`:
 
----
-
-## ⚙️ Requisitos
-
-Para executar o projeto, é necessário ter instalado:
-
-* Python 3
-* GCC
-* WinFlex
-* Ambiente compatível com a compilação de programas em C
-
-No Windows, o GCC pode ser utilizado por meio do **MSYS2 UCRT64**.
-
----
-
-## ▶️ Execução do Analisador em C
-
-O arquivo `lexer.l` contém a especificação das regras léxicas. O código C utilizado pelo compilador é gerado pelo Flex.
-
-A partir da raiz do projeto, execute:
-
-```powershell
-win_flex -o src/lexer/lexer.c src/lexer/lexer.l
+```bash
+cd Minic
+make
 ```
 
-Em seguida, compile o código gerado:
+Sem `make`, os comandos simples também funcionam:
 
-```powershell
-gcc src/lexer/lexer.c -o src/lexer/lexer.exe
+```bash
+gcc -std=c11 -Wall -Wextra parser.c -o parser
+gcc -std=c11 -Wall -Wextra minic.c -o minic
 ```
 
----
+### Etapa 1 — scanner
 
-## 🧪 Execução dos Testes
-
-A suíte de testes pode ser executada a partir da raiz do projeto com:
-
-```powershell
-python tests/run_tests.py
+```bash
+python src/lexer/lexer.py tests/casos-programas-c/c01_fibonacci.c
+gcc -std=c11 -D_POSIX_C_SOURCE=200809L src/lexer/lexer.c -o lexer
+./lexer tests/casos-programas-c/c01_fibonacci.c
 ```
 
-O script executa os casos de teste para as implementações em Python e C e compara os tokens produzidos com os resultados esperados.
+Os fontes e o formato JSONL originais dessa etapa foram mantidos. O adaptador
+Python das etapas seguintes importa `tokenize` desse lexer. O adaptador C é
+gerado das regras do mesmo `lexer.l`, substituindo apenas a emissão de JSONL
+pela criação de tokens para o parser.
 
----
+### Etapa 2 — parser
 
-## ✅ Resultado dos Testes
-
-A implementação atual foi validada com os casos de teste fornecidos.
-
-### Python
-
-```text
-Python: TODOS OS TESTES OK
+```bash
+python parser.py tests/parser/casos/25_programa_integrado/codigo.c
+./parser tests/parser/casos/25_programa_integrado/codigo.c
 ```
 
-### C
+A saída é a AST textual. Erros léxicos ou sintáticos retornam status 1 sem
+imprimir uma árvore parcial; falhas de entrada/uso retornam 2. A etapa 2 não
+aplica regras semânticas: por exemplo, pode construir a árvore de `if (1)`,
+mas a etapa 3 rejeita essa condição por não ser booleana.
 
-```text
-C: TODOS OS TESTES OK
+### Etapa 3 — analisador semântico
+
+```bash
+python minic.py tests/semantico/04_vetores_e_parametro_array.c
+./minic tests/semantico/04_vetores_e_parametro_array.c
+./testes_semanticos_py.sh minic.py tests/semantico
+./testes_semanticos_c.sh minic.c tests/semantico
 ```
 
-Foram aprovados os seguintes casos:
+Sucesso produz `Análise semântica concluída: 0 erros; programa aceito.` e status
+0. Erros semânticos produzem os diagnósticos SEMxxx ordenados por posição, a
+contagem final e status 1. A saída segue os bytes dos gabaritos originais:
+CRLF entre diagnósticos e ausência de newline final.
 
-* `c01_fibonacci.c`
-* `c02_primos.c`
-* `c03_media_vetor.c`
-* `c04_menu_interativo.c`
-* `c05_controle_temperatura.c`
-* `i01_simbolo_desconhecido.minic`
-* `i02_comentario_nao_terminado.minic`
-* `i03_caractere_nao_terminado.minic`
-* `i04_cadeia_nao_terminada.minic`
-* `i05_numero_real_malformado.minic`
+## Verificar o projeto completo
 
-O caso `i06_identificador_iniciado_por_digito` possui arquivos de resultado esperados, porém o arquivo `.minic` correspondente não foi fornecido na suíte de testes. Portanto, esse caso não pode ser executado automaticamente.
-
----
-
-## 📌 Funcionamento
-
-O analisador léxico recebe um código-fonte da linguagem MINIC e realiza a leitura caractere por caractere, agrupando os caracteres em unidades léxicas chamadas **tokens**.
-
-Entre os elementos reconhecidos estão:
-
-* Palavras reservadas
-* Identificadores
-* Números inteiros
-* Números reais
-* Literais de caracteres
-* Literais de cadeia
-* Operadores
-* Delimitadores
-* Comentários
-
-Cada token identificado possui informações como:
-
-* Tipo do token
-* Lexema
-* Atributo, quando aplicável
-* Linha
-* Coluna
-
-Os resultados são produzidos no formato **JSONL**, facilitando a comparação automática entre a saída produzida pelo analisador e os resultados esperados.
-
----
-
-## ❌ Tratamento de Erros Léxicos
-
-O analisador também identifica formações inválidas, como:
-
-* Símbolos desconhecidos
-* Comentários não terminados
-* Literais de caracteres não terminados
-* Literais de cadeia não terminados
-* Números reais malformados
-* Outras construções incompatíveis com as regras léxicas da linguagem
-
-Os erros são reportados juntamente com informações de localização no código-fonte, permitindo identificar a linha e a coluna em que o problema ocorreu.
-
----
-
-## 📄 Formato de Saída
-
-Os tokens são representados em formato JSONL. Um exemplo de saída é:
-
-```json
-{"token":"INT","lexeme":"int","attribute":null,"line":1,"column":1}
-{"token":"IDENT","lexeme":"x","attribute":"x","line":1,"column":5}
-{"token":"ASSIGN","lexeme":"=","attribute":null,"line":1,"column":7}
+```bash
+make test
+# alternativa sem make:
+python tests/validar_compilador.py
 ```
 
-Cada linha representa um token identificado pelo analisador léxico.
+O verificador compila os pontos de entrada usados pelo professor, compara C e
+Python, executa os 50 testes sintáticos, os 20 semânticos, 29 regressões e os
+10 casos disponíveis da etapa 1. As saídas novas ficam em `Minic/build`, sem
+sobrescrever os resultados antigos versionados da etapa 1.
 
----
+[Resultados e limitações dos gabaritos](Minic/RESULTADOS_TESTES.md): o caso
+sintático 24 contém um parêntese excedente na referência; o fixture léxico i06
+não tem fonte de entrada no material fornecido. Os arquivos originais dos
+testes não foram corrigidos para ocultar essas limitações.
 
-## 📚 Etapa do Projeto
+## Manter a continuidade entre as etapas
 
-Este repositório corresponde à:
+O contrato de tokens e nós está em `src/common.*`. O parser é único por
+linguagem e é consumido pelos dois pontos de entrada. O semântico recebe a
+AST; ele não relê o código com outro scanner nem reconstrói a sintaxe.
 
-**AP 1 — Etapa 1: Analisador Léxico**
+A gramática inclui variáveis e inicializadores, vetores unidimensionais,
+parâmetros escalar/vetor, funções com corpo, blocos, `if/else`, `while`,
+`return`, chamadas, atribuições e operadores. Reconhecer um token na etapa 1
+não significa que uma construção esteja prevista na gramática das etapas
+seguintes: ponteiros, structs, diretivas de pré-processador, `for`, `break` e
+`continue` não fazem parte da gramática sintática fornecida. `int f();` é
+rejeitado conforme o teste sintático 48; funções precisam de corpo.
 
-O analisador léxico constitui a primeira etapa do processo de compilação, sendo responsável por transformar o código-fonte em uma sequência de tokens que poderá ser utilizada pelas próximas etapas do compilador.
+O semântico verifica escopos com sombreamento, duplicações, chamadas e tipos,
+promoção `int → float`, condições e operadores lógicos booleanos, índices
+inteiros, parâmetros vetor, destinos atribuíveis, uso de void e cobertura de
+retorno em funções não void. As condições não usam a regra de valores
+escalares da linguagem C: MINIC exige `bool`.
+
+Depois de alterar `src/lexer/lexer.l`, regenere o adaptador C:
+
+```bash
+make scanner
+# ou: python tools/gerar_scanner.py
+make test
+```
+
+Essa geração requer Flex 2.6.4 e GNU M4. O teste verifica a assinatura da
+especificação para detectar um scanner C desatualizado. Alterações léxicas
+precisam manter também a versão Python equivalente. Não edite manualmente o
+arquivo `src/scanner/scanner.c` gerado.
+
+O `Makefile` compila os módulos C separados. Os pontos de entrada também
+suportam a compilação em um único comando exigida pelos scripts do professor.
+O compilador implementa o frontend de análise; não gera executável nem código
+de máquina do programa MINIC.

@@ -1,2 +1,4 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+# Preserve the professor's byte-for-byte golden files (mixed CRLF, no final LF).
+Minic/tests/semantico/*.gabarito -text whitespace=cr-at-eol
