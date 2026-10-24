@@ -90,7 +90,7 @@ O interpretador C mantém as alocações internas em uma arena até o fim da exe
 - Atribuições são comandos; a cadeia `a=b=3` continua aceita, conforme o caso semântico anterior 09. Não pode ser usada como valor de retorno/argumento/condição.
 - Índices constantes fora dos limites são rejeitados. Índices dinâmicos são conferidos na VM, inclusive parâmetros vetor com tamanho real conhecido em execução. Endereços são medidos em células, não bytes.
 - Globais começam em zero. Locais e elementos locais começam não inicializados; uma leitura antes de escrita gera erro. A declaração local é reiniciada a cada entrada no bloco.
-- `print` escreve um valor e newline; bool usa `true/false`, float usa até 12 dígitos significativos, char imprime o caractere e texto mantém seus escapes. `read` consome tokens separados por espaço, de acordo com o tipo; bool aceita true/false/1/0. Números de entrada usam dígitos ASCII; float também aceita notação exponencial.
+- `print` escreve um valor e newline; bool usa `true/false`, float usa até 12 dígitos significativos, char imprime o caractere e texto mantém seus escapes. `read` consome tokens separados por espaço, de acordo com o tipo; bool aceita true/false/1/0. Aceitamos um BOM UTF-8 antes do primeiro token da entrada; marcadores posteriores continuam inválidos. Números de entrada usam dígitos ASCII; float também aceita notação exponencial.
 - Limitamos uma execução a 2.000.000 instruções VM, profundidade de chamada 256 e 1.000.000 células por vetor. Exceder os limites gera erro de execução. Esses limites são uma política da VM educacional.
 
 ## Opções e códigos de saída

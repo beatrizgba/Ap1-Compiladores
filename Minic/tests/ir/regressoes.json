@@ -416,5 +416,25 @@
     "fonte": "return 0;",
     "fase": 4,
     "codigo": "SEM014"
+  },
+  {
+    "nome": "read_bom_utf8",
+    "fonte": "int main(){int v[3];int i;int s=0;for(i=0;i<3;i=i+1){read(v[i]);s=s+v[i];}print(s);return 0;}",
+    "entrada": "﻿2 4 6\r\n",
+    "saida": "12\n"
+  },
+  {
+    "nome": "read_bom_separado",
+    "fonte": "int main(){int v[3];int i;int s=0;for(i=0;i<3;i=i+1){read(v[i]);s=s+v[i];}print(s);return 0;}",
+    "entrada": "﻿\r\n2 4 6\r\n",
+    "saida": "12\n"
+  },
+  {
+    "nome": "read_bom_no_meio",
+    "fonte": "int main(){int x;int y;read(x);read(y);return 0;}",
+    "entrada": "1 ﻿2\n",
+    "saida": "",
+    "status": 6,
+    "erro": "Entrada incompatível"
   }
 ]

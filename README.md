@@ -350,11 +350,14 @@ As quatro execuções devem mostrar **`120`**.
 Para testar entrada de dados e vetores:
 
 ```powershell
-Get-Content examples/entrada.txt | python minic.py --run examples/entrada_vetores.c
-Get-Content examples/entrada.txt | .\minic.exe --run examples/entrada_vetores.c
+cmd /c "python minic.py --run examples/entrada_vetores.c < examples/entrada.txt"
+cmd /c ".\minic.exe --run examples/entrada_vetores.c < examples/entrada.txt"
 ```
 
-Esperamos **`30`**, a soma dos cinco valores do arquivo.
+Esperamos **`30`**, a soma dos cinco valores do arquivo. Executamos o `cmd`
+a partir do PowerShell para redirecionar o arquivo sem a recodificação do
+pipeline `Get-Content`. A leitura também aceita um BOM UTF-8 antes do primeiro
+valor, caso o terminal ou o arquivo inclua esse marcador.
 
 ### Passo 4 — salvar e executar o código gerado
 
@@ -437,7 +440,7 @@ Esperamos:
 - Testes adicionais: **62/62**, com resultados equivalentes entre as versões.
 - AST anotada: tipos, símbolos, conversões e contextos conferidos em C e Python.
 - IR: **30/30** casos fornecidos, conferidos por categoria, estrutura e comportamento.
-- Etapa final: **70/70** regressões, executadas com e sem otimização.
+- Etapa final: **73/73** regressões, executadas com e sem otimização.
 - Backend: **20 programas válidos × 2 modos**, com assembly salvo e recarregado.
 - Parser SLR, SDD, dependências acíclicas, símbolos, CFG e temporários conferidos.
 

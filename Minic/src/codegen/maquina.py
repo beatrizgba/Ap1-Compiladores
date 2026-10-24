@@ -98,7 +98,16 @@ def execute(code,input_stream=None,output=None):
     for index,i in enumerate(code):
         if i.op=='FUNC':current=i.d;functions[current]=index+1;labels[current]={}
         elif i.op=='LABEL':labels[current][i.d]=index
-    globals_={};steps=0;words=(word for line in input_stream for word in line.split())
+    def input_words():
+        first=True
+        for line in input_stream:
+            for word in line.split():
+                if first:
+                    first=False
+                    word=word.removeprefix('\ufeff')
+                    if not word:continue
+                yield word
+    globals_={};steps=0;words=input_words()
     def invoke(name,args,depth):
         nonlocal steps
         if depth>256:raise RuntimeFault('Limite de recursão excedido.')

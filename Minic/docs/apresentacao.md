@@ -59,12 +59,12 @@ Explicamos por que não removemos uma divisão potencialmente falhável só porq
 python tests/validar_compilador.py
 ```
 
-Mostramos os resultados das etapas anteriores, os 30 casos de IR e as 70 regressões finais. Explicamos o critério estrutural/semântico do README da suíte e a diferença para seus scripts literais. Mantivemos os gabaritos originais.
+Mostramos os resultados das etapas anteriores, os 30 casos de IR e as 73 regressões finais. Explicamos o critério estrutural/semântico do README da suíte e a diferença para seus scripts literais. Mantivemos os gabaritos originais.
 
 Apresentamos o benchmark com método, medianas e tamanhos estáticos da IR/VM. Mostramos que menos instruções não garante ganho no tempo total em todas as entradas. Encerramos demonstrando um programa com entrada:
 
 ```powershell
-Get-Content examples/entrada.txt | python minic.py --run -O1 examples/entrada_vetores.c
+cmd /c "python minic.py --run -O1 examples/entrada_vetores.c < examples/entrada.txt"
 ```
 
 Esperamos 30. Deixamos o manual no README e os detalhes de contrato/limitações na documentação de arquitetura.

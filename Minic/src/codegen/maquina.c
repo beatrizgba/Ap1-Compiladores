@@ -46,7 +46,7 @@ typedef struct VMValue {int kind;long long integer;double real;const char *text;
 struct VMArray {size_t size;VMValue *items;};
 enum {VM_UNSET,VM_INT,VM_FLOAT,VM_BOOL,VM_CHAR,VM_STRING,VM_ARRAY,VM_VOID};
 typedef struct VMSlot {const char *name;VMValue value;struct VMSlot *next;} VMSlot;
-typedef struct VM {IR *code;VMSlot *globals;size_t steps;jmp_buf trap;} VM;
+typedef struct VM {IR *code;VMSlot *globals;size_t steps;int input_started;jmp_buf trap;} VM;
 typedef struct VMFrame {VMSlot *locals;VMValue *stack;size_t top,capacity;} VMFrame;
 static void vm_fault(VM *vm,const char *message){fprintf(stderr,"ERRO EXECUCAO: %s\n",message);longjmp(vm->trap,1);}
 static VMValue vm_int(long long n){return (VMValue){VM_INT,n,0,NULL,NULL};}
@@ -190,6 +190,13 @@ static VMValue vm_call(VM *vm,const char *name,VMValue *args,size_t argc,int dep
             else printf("%lld\n",value.integer);
         } else if(vm_is(op,"READ")) {
             char word[4096];if(scanf("%4095s",word)!=1)vm_fault(vm,"Entrada incompatível com o tipo solicitado.");
+            if(!vm->input_started) {
+                vm->input_started=1;
+                if(!strncmp(word,"\xef\xbb\xbf",3)) {
+                    memmove(word,word+3,strlen(word+3)+1);
+                    if(!*word&&scanf("%4095s",word)!=1)vm_fault(vm,"Entrada incompatível com o tipo solicitado.");
+                }
+            }
             VMValue value={0};char *end=NULL;errno=0;
             if(vm_is(i.typ,"int")){value=vm_int(strtoll(word,&end,10));if(errno||end==word||*end)vm_fault(vm,"Entrada incompatível com o tipo solicitado.");}
             else if(vm_is(i.typ,"float")){value=vm_real(strtod(word,&end));if(end==word||*end||!isfinite(value.real)||strpbrk(word,"xXpP"))vm_fault(vm,"Entrada incompatível com o tipo solicitado.");}
