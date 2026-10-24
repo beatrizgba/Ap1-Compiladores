@@ -115,6 +115,8 @@ def main():
         assert runner['test_case']([str(lexer)],source,BUILD/'scanner-c'),source
     subprocess.run([sys.executable,str(ROOT/'tests/check_fixtures.py')],check=True)
     print('Etapa 1 preservada: Python 10/10; C 10/10. i06 sem fonte no material original.')
+    sys.stdout.flush()
+    subprocess.run([sys.executable,str(ROOT/'tests/validar_ir.py')],check=True,cwd=ROOT,env=ENV)
 
 
 if __name__=='__main__': main()

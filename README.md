@@ -1,8 +1,9 @@
-# Compilador MINIC — etapas 1, 2 e 3
+# Compilador MINIC — projeto completo
 
-Projeto da disciplina de Compiladores, com versões em Python e C. As três
-etapas compõem um único frontend: o scanner fornece tokens, o parser constrói
-uma árvore sintática (AST), e o analisador semântico verifica essa mesma árvore.
+Projeto da disciplina de Compiladores, com versões em Python e C. Integramos as quatro
+etapas: o scanner fornece tokens, o parser ascendente constrói a AST, a análise
+semântica verifica e anota essa árvore, e a etapa final gera IR, aplica
+otimizações e produz código executável na nossa máquina virtual MINIC-VM.
 
 Integrantes: Ana Clara T. Coser, Beatriz Gabrielly Batista de Almeida e
 Vinicius Henrique Santos.
@@ -14,7 +15,10 @@ flowchart LR
     Tokens --> Parser[Etapa 2: parser]
     Parser --> AST[Árvore sintática]
     AST --> Semantico[Etapa 3: analisador semântico]
-    Semantico --> Resultado[Diagnósticos e resultado]
+    Semantico --> IR[IR de três endereços]
+    IR --> Otimizador[Etapa 4: otimização -O0 ou -O1]
+    Otimizador --> Backend[Assembly MINIC-VM]
+    Backend --> Execucao[Execução na máquina de pilha]
 ```
 
 ## Organização
@@ -23,19 +27,26 @@ flowchart LR
 Minic/
 ├── scanner.py / scanner.c     # entrada da etapa 1
 ├── parser.py / parser.c       # entrada da etapa 2
-├── minic.py / minic.c         # entrada da etapa 3
+├── minic.py / minic.c         # entrada das etapas 3 e 4
 ├── Makefile
 ├── src/
 │   ├── lexer/                # fontes originais da etapa 1, preservados
 │   ├── scanner/              # adaptadores das mesmas regras da etapa 1
-│   ├── parser/               # parser compartilhado entre etapas 2 e 3
+│   ├── parser/               # parser ascendente SLR, compartilhado
 │   ├── semantico/            # análise da AST, em C e Python
+│   ├── ir/                   # quádruplas, atributos e dependências
+│   ├── optimizer/            # CFG, constantes, CSE e liveness
+│   ├── codegen/              # backend e execução MINIC-VM
 │   └── common.py / common.h / common.c
-├── tools/gerar_scanner.py     # gera o scanner C a partir de lexer.l
+├── docs/                     # arquitetura, SDD, otimizações e apresentação
+├── examples/                 # programas completos e entrada de exemplo
+├── tools/                    # geradores de tabelas/scanner e benchmark
 ├── testar_parser_python.sh   # testes sintáticos do projeto
 ├── testar_parser_c.sh
 ├── testes_semanticos_py.sh    # script original do professor
 ├── testes_semanticos_c.sh     # script original do professor
+├── test_ir_python.sh         # verificadores de IR do projeto
+├── test_ir_c.sh
 └── tests/
     ├── casos-invalidos/      # casos léxicos
     ├── casos-programas-c/    # casos léxicos
@@ -43,7 +54,9 @@ Minic/
     ├── semantico/           # 20 casos e gabaritos fornecidos
     ├── regressao/           # casos adicionais
     ├── scripts_professor/   # scripts originais de scanner e parser
-    └── validar_compilador.py # valida as três etapas e C × Python
+    ├── ir/                  # 30 fontes/gabaritos originais e regressões finais
+    ├── validar_ir.py         # IR, backend e otimização
+    └── validar_compilador.py # valida o projeto completo e C × Python
 ```
 
 ## Preparar e executar no VS Code
@@ -159,7 +172,9 @@ Se houver um erro léxico, ele também será informado.
 
 **O que fizemos:** construímos o parser para usar os tokens da etapa 1 e verificar
 se o código segue a gramática do MINIC. Quando a sintaxe está correta, ele monta
-uma árvore sintática (AST), que representa a estrutura do programa.
+uma árvore sintática (AST), que representa a estrutura do programa. Usamos um
+parser ascendente SLR(1), com pilha de estados, tabelas ACTION/GOTO e ações
+semânticas nas reduções.
 
 **Corrigimos a versão entregue anteriormente:** ajustamos a leitura dos tokens,
 o reconhecimento de declarações, vetores, funções e expressões, a construção
@@ -277,6 +292,128 @@ Em Bash, também podemos usar diretamente os comandos exigidos pelo professor:
 ./testes_semanticos_c.sh minic.c tests/semantico
 ```
 
+## Etapa 4 — IR, otimização e execução
+
+**O que fizemos:** traduzimos a AST anotada para quádruplas de três endereços,
+implementamos otimizações locais e globais e geramos assembly para a **MINIC-VM**,
+uma máquina de pilha didática. Implementamos funções e recursão com frames
+independentes, vetores com limites verificados, `for`, `print` e `read`.
+
+Também implementamos evidências da SDD: atributos, equações documentadas,
+grafo de dependências e ordem topológica. O CFG mostra blocos básicos,
+dominadores e laços naturais.
+
+### Passo 1 — conferir a análise do programa completo
+
+Dentro de `Minic`, no PowerShell do VS Code:
+
+```powershell
+python minic.py --check examples/fatorial.c
+```
+
+Esperamos a mensagem de programa aceito, sem erros.
+
+A chamada sem opções (`python minic.py arquivo.c`) continua compatível com os
+testes semânticos da etapa 3. Para usar a etapa final, escolha as opções abaixo;
+nessas opções, exigimos `int main()` sem parâmetros.
+
+### Passo 2 — visualizar a IR antes e depois das otimizações
+
+```powershell
+python minic.py --ir -O0 examples/fatorial.c
+python minic.py --ir -O1 examples/fatorial.c
+```
+
+Cada linha mostra `OPERAÇÃO`, `DESTINO`, `OPERANDO 1`, `OPERANDO 2` e `TIPO`,
+separados por tabulações. `-O0` desativa o otimizador e `-O1` ativa os passes
+implementados. Temporários e rótulos podem diferir dos exemplos do professor;
+conferimos a estrutura e o comportamento.
+
+### Passo 3 — executar o programa
+
+**Python:**
+
+```powershell
+python minic.py --run -O0 examples/fatorial.c
+python minic.py --run -O1 examples/fatorial.c
+```
+
+**C:** após compilar `minic.c`, conforme a preparação:
+
+```powershell
+.\minic.exe --run -O0 examples/fatorial.c
+.\minic.exe --run -O1 examples/fatorial.c
+```
+
+As quatro execuções devem mostrar **`120`**.
+
+Para testar entrada de dados e vetores:
+
+```powershell
+Get-Content examples/entrada.txt | python minic.py --run examples/entrada_vetores.c
+Get-Content examples/entrada.txt | .\minic.exe --run examples/entrada_vetores.c
+```
+
+Esperamos **`30`**, a soma dos cinco valores do arquivo.
+
+### Passo 4 — salvar e executar o código gerado
+
+```powershell
+New-Item -ItemType Directory -Force build | Out-Null
+python minic.py --target=asm -O1 examples/fatorial.c -o build/fatorial.mvm
+python minic.py --exec build/fatorial.mvm
+.\minic.exe --exec build/fatorial.mvm
+```
+
+O arquivo `.mvm` contém assembly da nossa máquina virtual. Podemos gerá-lo em
+uma versão do compilador e executá-lo na outra. O alvo escolhido funciona no
+Windows com as ferramentas da preparação; não exige Ubuntu.
+
+### Passo 5 — visualizar as evidências das aulas
+
+```powershell
+python minic.py --trace-parser --check examples/fatorial.c
+python minic.py --symbols examples/fatorial.c
+python minic.py --sdd examples/fatorial.c
+python minic.py --deps examples/fatorial.c -o build/dependencias.dot
+python minic.py --cfg examples/entrada_vetores.c -o build/fluxo.dot
+```
+
+`--trace-parser` mostra shifts e reduções. `--sdd` mostra os atributos e uma
+ordem de avaliação válida. Os arquivos DOT guardam os grafos e podem ser
+visualizados com uma ferramenta compatível com Graphviz; ela é opcional.
+
+### Passo 6 — executar os testes da etapa final
+
+```powershell
+python tests/validar_ir.py
+```
+
+Esse comando verifica as versões C e Python. Para escolher uma versão:
+
+```powershell
+bash test_ir_python.sh minic.py tests/ir/originais
+bash test_ir_c.sh minic.c tests/ir/originais
+```
+
+Usamos verificadores do projeto porque os scripts de IR fornecidos fazem
+comparações literais com arquivos que incluem texto explicativo. Preservamos
+os originais e explicamos o critério em [Conferência dos materiais](Minic/docs/requisitos.md).
+Não confundimos aprovação semântica dos 30 casos com aprovação nesses scripts
+literais.
+
+### Passo 7 — reproduzir o benchmark
+
+```powershell
+python tools/benchmark.py --repeticoes 5
+```
+
+Conferimos as saídas antes de medir. Os resultados locais ficam em
+`build/benchmark/resultados.csv` e `ambiente.json`. A medição separa compilação
+e execução do assembly; reportamos a mediana de cinco execuções, após um
+aquecimento. O método e os resultados registrados estão em
+[Benchmarks](Minic/docs/benchmarks.md).
+
 ## Testar o projeto completo no VS Code
 
 ### Passo 1 — executar o verificador
@@ -287,7 +424,7 @@ Com as ferramentas disponíveis e o terminal dentro de `Minic`, execute:
 python tests/validar_compilador.py
 ```
 
-Ele compila os programas C e verifica as três etapas, os scripts de testes,
+Ele compila os programas C e verifica as quatro etapas, os scripts de testes,
 as regressões e as anotações da AST, comparando as versões Python e C.
 
 ### Passo 2 — conferir os resultados
@@ -299,6 +436,10 @@ Esperamos:
 - Etapa 3: **20/20** em Python e C.
 - Testes adicionais: **62/62**, com resultados equivalentes entre as versões.
 - AST anotada: tipos, símbolos, conversões e contextos conferidos em C e Python.
+- IR: **30/30** casos fornecidos, conferidos por categoria, estrutura e comportamento.
+- Etapa final: **70/70** regressões, executadas com e sem otimização.
+- Backend: **20 programas válidos × 2 modos**, com assembly salvo e recarregado.
+- Parser SLR, SDD, dependências acíclicas, símbolos, CFG e temporários conferidos.
 
 A observação do **caso 24** é uma diferença no gabarito original. O aviso do
 **i06** informa que seu arquivo de entrada não foi fornecido. Mantivemos essas
@@ -320,5 +461,20 @@ aplicativos do Windows para identificar a restrição.
 Os testes salvam arquivos locais em `Minic/build`. Não atualizam
 `RESULTADOS_TESTES.md` e não enviam mudanças ao GitHub automaticamente.
 
+Configuramos o GitHub Actions para executar a suíte em Linux e Windows/MSYS2
+a cada push. A aba **Actions** do repositório mostra o resultado dessas execuções.
+
 Registramos os resultados em [Resultados dos testes](Minic/RESULTADOS_TESTES.md).
 As decisões da linguagem estão em [Regras do MINIC](Minic/REGRAS_MINIC.md).
+
+## Documentação do projeto
+
+- [Conferência dos requisitos e materiais](Minic/docs/requisitos.md).
+- [Arquitetura, contratos e máquina virtual](Minic/docs/arquitetura.md).
+- [SDD, atributos e dependências](Minic/docs/sdd.md).
+- [Otimizações e argumentos de corretude](Minic/docs/otimizacoes.md).
+- [Benchmarks reproduzíveis](Minic/docs/benchmarks.md).
+- [Roteiro da apresentação](Minic/docs/apresentacao.md).
+
+Para listar as opções e os códigos de saída, consulte `python minic.py --help`
+e o documento de arquitetura.

@@ -13,12 +13,13 @@ class Symbol:
 
 
 class Analyzer:
-    def __init__(self, program, source):
+    def __init__(self, program, source, final_mode=False):
         self.program, self.source = program, source
         self.scopes = [{}]
         self.errors = []
         self.function = None
         self.loop_depth = 0
+        self.final_mode = final_mode
 
     def text(self, n): return self.source[n.token.start:n.end].strip()
 
@@ -59,6 +60,13 @@ class Analyzer:
     def analyze(self):
         for n in self.program.children:
             if n.kind in {'decl', 'function'}: self.declare(n)
+        if self.final_mode:
+            mains=[n for n in self.program.children if n.kind=='function' and n.value=='main']
+            if len(mains)!=1 or mains[0].type_name!='int' or mains[0].params:
+                self.error('SEM014', self.program, 'O programa deve definir exatamente uma função int main() sem parâmetros.')
+            for n in self.program.children:
+                if n.kind not in {'decl','function'}:
+                    self.error('SEM014', n, 'Comando fora de uma função.')
         for n in self.program.children:
             if n.kind == 'function':
                 self.function = n
@@ -114,16 +122,18 @@ class Analyzer:
             self.declare(n)
             self.check_decl(n)
         elif n.kind == 'expr': self.expression(n.left, 'comando')
-        elif n.kind in {'if', 'while'}:
-            n.left.expected_type = 'bool'
-            actual = self.expression(n.left, 'condição')
+        elif n.kind in {'if', 'while', 'for'}:
+            if n.kind=='for' and n.initializer:self.expression(n.initializer,'comando')
+            if n.left:n.left.expected_type = 'bool'
+            actual = self.expression(n.left, 'condição') if n.left else 'bool'
             if actual not in {'bool', 'error'}:
                 self.error('SEM005', n.left, f'Condição de {n.kind} deve ter tipo bool; recebeu {actual} (expressão “{self.text(n.left)}”).')
-            if n.kind == 'while': self.loop_depth += 1
+            if n.kind in {'while','for'}: self.loop_depth += 1
             self.statement(n.body)
-            if n.kind == 'while': self.loop_depth -= 1
+            if n.kind=='for' and n.right:self.expression(n.right,'comando')
+            if n.kind in {'while','for'}: self.loop_depth -= 1
             if n.otherwise: self.statement(n.otherwise)
-            n.flow = (NORMAL | (n.body.flow & RETURN)) if n.kind == 'while' else (n.body.flow | (n.otherwise.flow if n.otherwise else NORMAL))
+            n.flow = (NORMAL | (n.body.flow & RETURN)) if n.kind in {'while','for'} else (n.body.flow | (n.otherwise.flow if n.otherwise else NORMAL))
         elif n.kind in {'break', 'continue'}:
             if not self.loop_depth:
                 self.error('SEM010', n, f'{n.kind} só pode ocorrer dentro de um laço.')
@@ -159,6 +169,14 @@ class Analyzer:
     def expression_type(self, n, context):
         if n.kind == 'literal':
             n.category = 'literal'
+            if self.final_mode and n.type_name=='int':
+                digits=n.value.lstrip('0') or '0'
+                if len(digits)>19 or int(digits)>MAX_INT:
+                    self.error('SEM016',n,'Literal inteiro fora do intervalo de 64 bits.');return 'error'
+            if self.final_mode and n.type_name=='float':
+                import math
+                if not math.isfinite(float(n.value)):
+                    self.error('SEM016',n,'Literal real não finito.');return 'error'
             return n.type_name
         if n.kind == 'id':
             sym = self.lookup(n.value)
@@ -191,6 +209,21 @@ class Analyzer:
                 return 'error'
             return base[:-2]
         if n.kind == 'call':
+            if n.value in {'print','read'}:
+                types=[self.expression(arg,'argumento') for arg in n.children]
+                n.category='builtin'
+                if len(types)!=1:
+                    self.error('SEM007',n,f'“{n.value}” espera 1 argumento, mas recebeu {len(types)}.')
+                elif types[0]!='error':
+                    arg=n.children[0]
+                    if n.value=='read' and (not arg.assignable or types[0] not in {'int','float','bool','char'}):
+                        self.error('SEM013',arg,'read exige uma variável ou elemento de vetor gravável.')
+                    if n.value=='print' and types[0] not in {'int','float','bool','char','string'}:
+                        self.error('SEM004',arg,'print exige um valor escalar ou literal de texto.')
+                if context!='comando':
+                    self.error('SEM012',n,f'“{n.value}” não produz valor e só pode ser usado como comando.')
+                    return 'error'
+                return 'void'
             sym = self.lookup(n.value)
             args = [self.expression(a, 'argumento') for a in n.children]
             if sym is None:
@@ -255,6 +288,9 @@ class Analyzer:
             if not valid:
                 self.error('SEM004', n, f'Operador “{op}” não aceita operandos {a} e {b}.')
                 return 'error'
+            if self.final_mode and op in {'/','%'} and self.numeric_constant(n.right)==0:
+                self.error('SEM015',n.right,'Divisor constante zero não permitido.')
+                return 'error'
             if numeric and 'float' in {a, b}:
                 self.promote(n.left, 'float', a)
                 self.promote(n.right, 'float', b)
@@ -265,6 +301,19 @@ class Analyzer:
     @staticmethod
     def returns(n):
         return n.flow == RETURN
+
+    @staticmethod
+    def numeric_constant(n):
+        if n.semantic_type=='int':return Analyzer.constant(n)
+        if n.kind=='literal' and n.type_name=='float':return float(n.value)
+        if n.kind=='unary' and n.value in {'+','-'}:
+            value=Analyzer.numeric_constant(n.right)
+            return (-value if n.value=='-' else value) if value is not None else None
+        if n.kind=='binary' and n.value in {'+','-','*','/'}:
+            a,b=Analyzer.numeric_constant(n.left),Analyzer.numeric_constant(n.right)
+            if a is None or b is None or (n.value=='/' and b==0):return None
+            return {'+':lambda:a+b,'-':lambda:a-b,'*':lambda:a*b,'/':lambda:a/b}[n.value]()
+        return None
 
     @staticmethod
     def constant(n):
@@ -288,7 +337,7 @@ class Analyzer:
         return value if value is not None and MIN_INT <= value <= MAX_INT else None
 
 
-def analyze(program, source): return Analyzer(program, source).analyze()
+def analyze(program, source, final_mode=False): return Analyzer(program, source, final_mode).analyze()
 
 
 def render_diagnostics(errors):

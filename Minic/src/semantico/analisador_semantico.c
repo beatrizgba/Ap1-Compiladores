@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <limits.h>
+#include <math.h>
 
 typedef struct Scope { Symbol *symbols; struct Scope *parent; } Scope;
 typedef struct Analyzer { Context *ctx; Scope *scope; Node *function; int loop_depth; } Analyzer;
@@ -12,6 +13,7 @@ static int array_type(const char *t) { size_t n=strlen(t);return n>=2 && !strcmp
 static const char *decl_type(Analyzer *a,Node *n) { return n->array?format_text(a->ctx,"%s[]",n->type_name):n->type_name; }
 static int compatible(const char *target,const char *actual) { return equal(target,actual)||(equal(target,"float")&&equal(actual,"int")); }
 static int constant(Node *n,long long *out);
+static int numeric_constant(Node *n,double *out);
 static void promote(Node *n,const char *target,const char *actual) {
     if(equal(target,"float")&&equal(actual,"int"))n->conversion_to="float";
 }
@@ -81,6 +83,25 @@ static int constant(Node *n,long long *out) {
     }
     return 0;
 }
+static int numeric_constant(Node *n,double *out) {
+    if(equal(n->semantic_type,"int")){long long value;if(!constant(n,&value))return 0;*out=(double)value;return 1;}
+    if(n->kind==N_LITERAL && equal(n->type_name,"float")){*out=strtod(n->value,NULL);return 1;}
+    if(n->kind==N_UNARY && (equal(n->value,"+")||equal(n->value,"-"))) {
+        if(!numeric_constant(n->right,out))return 0;
+        if(equal(n->value,"-"))*out=-*out;
+        return 1;
+    }
+    if(n->kind==N_BINARY) {
+        double x,y;if(!numeric_constant(n->left,&x)||!numeric_constant(n->right,&y))return 0;
+        if(equal(n->value,"+"))*out=x+y;
+        else if(equal(n->value,"-"))*out=x-y;
+        else if(equal(n->value,"*"))*out=x*y;
+        else if(equal(n->value,"/") && y!=0)*out=x/y;
+        else return 0;
+        return 1;
+    }
+    return 0;
+}
 static void check_decl(Analyzer *a,Node *n) {
     if(n->array) {
         n->size->expected_type="int";
@@ -114,16 +135,18 @@ static void statement_check(Analyzer *a,Node *n) {
             block_check(a,n,1);break;
         case N_DECL:declare(a,n);check_decl(a,n);break;
         case N_EXPR:expression_type(a,n->left,"comando");break;
-        case N_IF:case N_WHILE: {
-            n->left->expected_type="bool";
-            const char *typ=expression_type(a,n->left,"condição");
+        case N_IF:case N_WHILE:case N_FOR: {
+            if(n->kind==N_FOR && n->initializer)expression_type(a,n->initializer,"comando");
+            if(n->left)n->left->expected_type="bool";
+            const char *typ=n->left?expression_type(a,n->left,"condição"):"bool";
             if(!equal(typ,"bool") && !equal(typ,"error"))
-                add_error(a->ctx,"SEM005",n->left,format_text(a->ctx,"Condição de %s deve ter tipo bool; recebeu %s (expressão “%s”).",n->kind==N_IF?"if":"while",typ,source_text(a->ctx,n->left)));
-            if(n->kind==N_WHILE)a->loop_depth++;
+                add_error(a->ctx,"SEM005",n->left,format_text(a->ctx,"Condição de %s deve ter tipo bool; recebeu %s (expressão “%s”).",n->kind==N_IF?"if":n->kind==N_FOR?"for":"while",typ,source_text(a->ctx,n->left)));
+            if(n->kind!=N_IF)a->loop_depth++;
             statement_check(a,n->body);
-            if(n->kind==N_WHILE)a->loop_depth--;
+            if(n->kind==N_FOR && n->right)expression_type(a,n->right,"comando");
+            if(n->kind!=N_IF)a->loop_depth--;
             if(n->otherwise)statement_check(a,n->otherwise);
-            n->flow=n->kind==N_WHILE?(FLOW_NORMAL|(n->body->flow & FLOW_RETURN)):
+            n->flow=n->kind!=N_IF?(FLOW_NORMAL|(n->body->flow & FLOW_RETURN)):
                 (n->body->flow|(n->otherwise?n->otherwise->flow:FLOW_NORMAL));
             break;
         }
@@ -157,7 +180,16 @@ static const char *expression_type(Analyzer *a,Node *n,const char *context) {
 }
 static const char *expression_type_impl(Analyzer *a,Node *n,const char *context) {
     switch(n->kind) {
-        case N_LITERAL:n->category="literal";return n->type_name;
+        case N_LITERAL:
+            n->category="literal";
+            if(a->ctx->final_mode && equal(n->type_name,"int")) {
+                errno=0;strtoll(n->value,NULL,10);
+                if(errno==ERANGE){add_error(a->ctx,"SEM016",n,"Literal inteiro fora do intervalo de 64 bits.");return "error";}
+            }
+            if(a->ctx->final_mode && equal(n->type_name,"float") && !isfinite(strtod(n->value,NULL))) {
+                add_error(a->ctx,"SEM016",n,"Literal real não finito.");return "error";
+            }
+            return n->type_name;
         case N_ID: {
             Symbol *s=lookup(a,n->value);
             if(!s){add_error(a->ctx,"SEM001",n,format_text(a->ctx,"Identificador “%s” não declarado neste escopo.",n->value));return "error";}
@@ -181,6 +213,21 @@ static const char *expression_type_impl(Analyzer *a,Node *n,const char *context)
             return copy_text(a->ctx,base,strlen(base)-2);
         }
         case N_CALL: {
+            if(equal(n->value,"print")||equal(n->value,"read")) {
+                size_t total=0;const char *typ="error";
+                for(Node *arg=n->children;arg;arg=arg->next){typ=expression_type(a,arg,"argumento");total++;}
+                n->category="builtin";
+                if(total!=1)add_error(a->ctx,"SEM007",n,format_text(a->ctx,"“%s” espera 1 argumento, mas recebeu %zu.",n->value,total));
+                else if(!equal(typ,"error")) {
+                    Node *arg=n->children;
+                    if(equal(n->value,"read") && (!arg->assignable || !(numeric(typ)||equal(typ,"bool")||equal(typ,"char"))))
+                        add_error(a->ctx,"SEM013",arg,"read exige uma variável ou elemento de vetor gravável.");
+                    if(equal(n->value,"print") && !(numeric(typ)||equal(typ,"bool")||equal(typ,"char")||equal(typ,"string")))
+                        add_error(a->ctx,"SEM004",arg,"print exige um valor escalar ou literal de texto.");
+                }
+                if(!equal(context,"comando")){add_error(a->ctx,"SEM012",n,format_text(a->ctx,"“%s” não produz valor e só pode ser usado como comando.",n->value));return "error";}
+                return "void";
+            }
             Symbol *s=lookup(a,n->value);size_t count=0,expected=0;
             for(Node *arg=n->children;arg;arg=arg->next)count++;
             const char **types=allocate(a->ctx,(count?count:1)*sizeof(*types));size_t i=0;
@@ -236,6 +283,10 @@ static const char *expression_type_impl(Analyzer *a,Node *n,const char *context)
             if(equal(op,"&&")||equal(op,"||"))valid=equal(left,"bool")&&equal(right,"bool");
             if(equal(op,"==")||equal(op,"!="))valid=numbers || (equal(left,right) && (equal(left,"bool")||equal(left,"char")));
             if(!valid){add_error(a->ctx,"SEM004",n,format_text(a->ctx,"Operador “%s” não aceita operandos %s e %s.",op,left,right));return "error";}
+            double divisor=0;
+            if(a->ctx->final_mode && (equal(op,"/")||equal(op,"%")) && numeric_constant(n->right,&divisor) && divisor==0) {
+                add_error(a->ctx,"SEM015",n->right,"Divisor constante zero não permitido.");return "error";
+            }
             if(numbers && (equal(left,"float")||equal(right,"float"))) {
                 promote(n->left,"float",left);promote(n->right,"float",right);
             }
@@ -248,6 +299,15 @@ static const char *expression_type_impl(Analyzer *a,Node *n,const char *context)
 void analyze_semantics(Context *ctx,Node *program) {
     Analyzer a={ctx,NULL,NULL,0};push_scope(&a);
     for(Node *n=program->children;n;n=n->next)if(n->kind==N_DECL||n->kind==N_FUNCTION)declare(&a,n);
+    if(ctx->final_mode) {
+        int mains=0;Node *main_node=NULL;
+        for(Node *n=program->children;n;n=n->next) {
+            if(n->kind==N_FUNCTION && equal(n->value,"main")){main_node=n;mains++;}
+        }
+        if(mains!=1 || !equal(main_node->type_name,"int") || main_node->params)
+            add_error(ctx,"SEM014",program,"O programa deve definir exatamente uma função int main() sem parâmetros.");
+        for(Node *n=program->children;n;n=n->next)if(n->kind!=N_FUNCTION && n->kind!=N_DECL)add_error(ctx,"SEM014",n,"Comando fora de uma função.");
+    }
     for(Node *n=program->children;n;n=n->next) {
         if(n->kind==N_FUNCTION) {
             a.function=n;push_scope(&a);

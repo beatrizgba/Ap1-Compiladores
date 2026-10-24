@@ -5,17 +5,20 @@
 #ifdef _WIN32
 #include <io.h>
 #include <fcntl.h>
+#include <windows.h>
 #endif
 
 void configure_output(void) {
     /* Evita CRCRLF e mantém a AST/diagnósticos iguais às saídas Python. */
 #ifdef _WIN32
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
     _setmode(_fileno(stdout), _O_BINARY);
     _setmode(_fileno(stderr), _O_BINARY);
 #endif
 }
 
-static void memory_failure(void) { fputs("ERRO ENTRADA: memória insuficiente\n", stderr); exit(2); }
+static _Noreturn void memory_failure(void) { fputs("ERRO ENTRADA: memória insuficiente\n", stderr); exit(2); }
 void *allocate(Context *ctx, size_t size) {
     void *data = calloc(1, size ? size : 1);
     Allocation *item = malloc(sizeof(*item));
@@ -29,6 +32,7 @@ char *copy_text(Context *ctx, const char *text, size_t length) {
     return result;
 }
 char *format_text(Context *ctx, const char *format, ...) {
+    if(!format)memory_failure();
     va_list args, copy;
     va_start(args, format); va_copy(copy, args);
     int length = vsnprintf(NULL, 0, format, copy); va_end(copy);
@@ -78,6 +82,7 @@ int read_source(Context *ctx, const char *path) {
     return 1;
 }
 void print_failure(Context *ctx) {
+    if(ctx->syntax_report){fputs(ctx->syntax_report,stderr);return;}
     fprintf(stderr,"ERRO %s linha %d, coluna %d: %s\n",ctx->stage,ctx->failure_line,ctx->failure_column,ctx->failure);
 }
 void add_error(Context *ctx, const char *code, Node *n, const char *message) {

@@ -1,16 +1,15 @@
 # Regras do nosso MINIC
 
-Implementamos o frontend em três etapas: scanner, parser e análise semântica.
+Implementamos o frontend em três etapas e a etapa final de IR, otimização e execução.
 Usamos as regras da Aula 15 e os casos oficiais do projeto para definir o
-comportamento em C e Python. Nesta etapa, ainda não geramos código de máquina
-nem representação intermediária.
+comportamento em C e Python. Geramos IR e assembly para a MINIC-VM; o alvo não é uma CPU nativa.
 
 ## Sintaxe e escopos
 
 Reconhecemos tipos `int`, `float`, `bool`, `char` e `void`; declarações e
 inicializadores; vetores unidimensionais; funções com corpo; parâmetros escalares
 ou vetores; blocos; chamadas; expressões; atribuições; `if/else`, `while`,
-`return`, `break` e `continue`.
+`return`, `break` e `continue`; acrescentamos `for`, `print` e `read` na etapa final.
 
 Coletamos as declarações globais antes de analisar os corpos. Assim, permitimos
 recursão e chamadas a funções definidas depois. Em funções, parâmetros e
@@ -20,7 +19,7 @@ Nomes repetidos no mesmo escopo geram diagnóstico com a posição da declaraç�
 anterior. Usamos identificadores ASCII, conforme as regras Flex da etapa 1.
 
 Mantivemos a exigência de corpo de função do caso sintático 48: `int f();`
-é rejeitado. Não acrescentamos ponteiros, structs, casts, `for` nem vetores
+é rejeitado. Não acrescentamos ponteiros, structs, casts nem vetores
 multidimensionais à gramática fornecida. Reconhecer uma palavra no scanner
 não implica que ela seja um comando da gramática das etapas seguintes.
 
@@ -96,3 +95,7 @@ os gabaritos.
 
 As particularidades dos scripts e dos gabaritos fornecidos estão documentadas
 em [Scripts originais do professor](tests/scripts_professor/README.md).
+
+## Contrato da etapa final
+
+Nas opções finais exigimos `int main()` sem parâmetros, rejeitamos divisor constante zero e literais fora do intervalo numérico. Mantivemos a chamada simples anterior para os gabaritos semânticos, sem exigir main. Implementamos `for`, `print`, `read`, IR, otimizações e backend de pilha. As políticas de overflow, inicialização, execução e conversões estão em [Arquitetura](docs/arquitetura.md). As equações e evidências da SDD estão em [SDD](docs/sdd.md).

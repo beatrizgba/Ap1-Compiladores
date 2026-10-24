@@ -1,0 +1,420 @@
+[
+  {
+    "nome": "for_continue",
+    "fonte": "int main(){int i;int s=0;for(i=0;i<6;i=i+1){if(i==2)continue;if(i==5)break;s=s+i;}print(s);return 0;}",
+    "saida": "8\n"
+  },
+  {
+    "nome": "for_vazio",
+    "fonte": "int main(){int i=0;for(;;){i=i+1;if(i==3)break;}print(i);return 0;}",
+    "saida": "3\n"
+  },
+  {
+    "nome": "lacos_aninhados",
+    "fonte": "int main(){int i;int j;int s=0;for(i=0;i<3;i=i+1){for(j=0;j<4;j=j+1){if(j==1)continue;if(j==3)break;s=s+1;}}print(s);return 0;}",
+    "saida": "6\n"
+  },
+  {
+    "nome": "while_continue",
+    "fonte": "int main(){int i=0;int s=0;while(i<4){i=i+1;if(i==2)continue;s=s+i;}print(s);return 0;}",
+    "saida": "8\n"
+  },
+  {
+    "nome": "curto_circuito",
+    "fonte": "int x=0;bool altera(){x=x+1;return true;}int main(){bool b=false&&altera();b=true||altera();print(x);b=true&&altera();b=false||altera();print(x);return 0;}",
+    "saida": "0\n2\n"
+  },
+  {
+    "nome": "ordem_binaria",
+    "fonte": "int x=1;int muda(){x=9;return 2;}int main(){print(x+muda());print(x);return 0;}",
+    "saida": "3\n9\n"
+  },
+  {
+    "nome": "ordem_argumentos",
+    "fonte": "int x=1;int muda(){x=9;return 2;}int f(int a,int b){return a*10+b;}int main(){print(f(x,muda()));return 0;}",
+    "saida": "12\n"
+  },
+  {
+    "nome": "chamadas_argumentos",
+    "fonte": "int f(int n){return n+1;}int g(int a,int b){return a*10+b;}int main(){print(g(f(1),g(f(2),f(3))));return 0;}",
+    "saida": "54\n"
+  },
+  {
+    "nome": "ordem_destino_vetor",
+    "fonte": "int i=0;int muda(){i=1;return 7;}int main(){int v[2];v[i]=muda();print(v[0]);print(i);return 0;}",
+    "saida": "7\n1\n"
+  },
+  {
+    "nome": "vetor_parametro_alias",
+    "fonte": "void muda(int a[],int b[]){a[0]=3;b[0]=b[0]+2;}int main(){int v[1];muda(v,v);print(v[0]);return 0;}",
+    "saida": "5\n"
+  },
+  {
+    "nome": "global_apos_chamada",
+    "fonte": "int x=1;void muda(){x=4;}int main(){int a=x;muda();print(a);print(x);return 0;}",
+    "saida": "1\n4\n"
+  },
+  {
+    "nome": "global_zerado",
+    "fonte": "int x;float a[1];bool b;char c;int main(){print(x);print(-a[0]);print(b);print(c);return 0;}",
+    "saida": "0\n-0\nfalse\n\u0000\n"
+  },
+  {
+    "nome": "inicializacao_global",
+    "fonte": "int a=b+1;int b=2;int f(){return a+b;}int c=f();int main(){print(a);print(b);print(c);return 0;}",
+    "saida": "1\n2\n3\n"
+  },
+  {
+    "nome": "nome_interno",
+    "fonte": "int __init(){return 7;}int main(){print(__init());return 0;}",
+    "saida": "7\n"
+  },
+  {
+    "nome": "recursao_frames",
+    "fonte": "int soma(int n){int x=n;if(n==0)return 0;return soma(n-1)+x;}int main(){print(soma(20));return 0;}",
+    "saida": "210\n"
+  },
+  {
+    "nome": "recursao_mutua",
+    "fonte": "bool par(int n){if(n==0)return true;return impar(n-1);}bool impar(int n){if(n==0)return false;return par(n-1);}int main(){print(par(8));return 0;}",
+    "saida": "true\n"
+  },
+  {
+    "nome": "conversoes",
+    "fonte": "float f(float x){return x+1;}int main(){float a=2;a=a+3;print(f(4));print(a);return 0;}",
+    "saida": "5\n5\n"
+  },
+  {
+    "nome": "operadores",
+    "fonte": "int main(){print(-7/3);print(-7%3);print(7%-3);print(!(2<1));print(2<=2);print(3>2);print(3>=3);print(3!=4);print(4==4);return 0;}",
+    "saida": "-2\n-1\n1\ntrue\ntrue\ntrue\ntrue\ntrue\ntrue\n"
+  },
+  {
+    "nome": "atribuicao_cadeia",
+    "fonte": "int main(){float a;int b;a=b=3;print(a);print(b);return 0;}",
+    "saida": "3\n3\n"
+  },
+  {
+    "nome": "sombreamento",
+    "fonte": "int x=1;int main(){int x=2;{int x=3;print(x);}print(x);return 0;}",
+    "saida": "3\n2\n"
+  },
+  {
+    "nome": "caracteres_texto",
+    "fonte": "int main(){char a='A';print(a);print('\\n');print(\"Olá, MINIC!\");print(\"a\\tb\");return 0;}",
+    "saida": "A\n\n\nOlá, MINIC!\na\tb\n"
+  },
+  {
+    "nome": "tab_literal",
+    "fonte": "int main(){print(\"a\tb\");return 0;}",
+    "saida": "a\tb\n"
+  },
+  {
+    "nome": "read_vetor",
+    "fonte": "int main(){int v[3];int i;int s=0;for(i=0;i<3;i=i+1){read(v[i]);s=s+v[i];}print(s);return 0;}",
+    "entrada": "2 4 6\n",
+    "saida": "12\n"
+  },
+  {
+    "nome": "read_tipos",
+    "fonte": "int main(){float x;bool b;char c;read(x);read(b);read(c);print(x);print(b);print(c);return 0;}",
+    "entrada": "2.5 true Z\n",
+    "saida": "2.5\ntrue\nZ\n"
+  },
+  {
+    "nome": "read_char_unicode",
+    "fonte": "int main(){char c;read(c);print(c);return 0;}",
+    "entrada": "é\n",
+    "saida": "é\n"
+  },
+  {
+    "nome": "read_bool_numerico",
+    "fonte": "int main(){bool a;bool b;read(a);read(b);print(a);print(b);return 0;}",
+    "entrada": "0 1\n",
+    "saida": "false\ntrue\n"
+  },
+  {
+    "nome": "if_diamante_entrada",
+    "fonte": "int main(){bool b;int x;read(b);if(b)x=3;else x=4;print(x+2);return 0;}",
+    "entrada": "true\n",
+    "saida": "5\n"
+  },
+  {
+    "nome": "if_diamante_outro",
+    "fonte": "int main(){bool b;int x;read(b);if(b)x=3;else x=4;print(x+2);return 0;}",
+    "entrada": "false\n",
+    "saida": "6\n"
+  },
+  {
+    "nome": "ponto_fixo_laco",
+    "fonte": "int main(){int n;int i=0;int a=1;read(n);while(i<n){a=a*2;i=i+1;}print(a);return 0;}",
+    "entrada": "5\n",
+    "saida": "32\n"
+  },
+  {
+    "nome": "zero_iteracoes",
+    "fonte": "int main(){int n;int z=0;read(n);while(n>0){print(1/z);n=n-1;}print(7);return 0;}",
+    "entrada": "0\n",
+    "saida": "7\n"
+  },
+  {
+    "nome": "codigo_morto_retorno",
+    "fonte": "int f(){return 4;print(99);}int main(){print(f());return 0;}",
+    "saida": "4\n"
+  },
+  {
+    "nome": "retorno_nao_zero",
+    "fonte": "int main(){print(7);return 7;}",
+    "saida": "7\n",
+    "status": 7
+  },
+  {
+    "nome": "retorno_negativo",
+    "fonte": "int main(){return -1;}",
+    "saida": "",
+    "status": 255
+  },
+  {
+    "nome": "limite_int64",
+    "fonte": "int main(){int a=9223372036854775807;print(a-1);print(-a-1);return 0;}",
+    "saida": "9223372036854775806\n-9223372036854775808\n"
+  },
+  {
+    "nome": "divisao_dinamica_zero",
+    "fonte": "int main(){int z;read(z);print(1/z);return 0;}",
+    "entrada": "0\n",
+    "saida": "",
+    "status": 6,
+    "erro": "Divisão por zero"
+  },
+  {
+    "nome": "divisao_morta_trap",
+    "fonte": "int main(){int z;int x;read(z);x=1/z;return 0;}",
+    "entrada": "0\n",
+    "saida": "",
+    "status": 6,
+    "erro": "Divisão por zero"
+  },
+  {
+    "nome": "overflow_morto",
+    "fonte": "int main(){int x=9223372036854775807;int y=x+1;return 0;}",
+    "saida": "",
+    "status": 6,
+    "erro": "Overflow inteiro"
+  },
+  {
+    "nome": "overflow_multiplicacao",
+    "fonte": "int main(){int x=-9223372036854775807;print(x*2);return 0;}",
+    "saida": "",
+    "status": 6,
+    "erro": "Overflow inteiro"
+  },
+  {
+    "nome": "overflow_divisao",
+    "fonte": "int main(){int x=-9223372036854775807-1;print(x/-1);return 0;}",
+    "saida": "",
+    "status": 6,
+    "erro": "Overflow inteiro"
+  },
+  {
+    "nome": "overflow_negacao",
+    "fonte": "int main(){int x=-9223372036854775807-1;print(-x);return 0;}",
+    "saida": "",
+    "status": 6,
+    "erro": "Overflow inteiro"
+  },
+  {
+    "nome": "indice_dinamico_limite",
+    "fonte": "int main(){int v[2];int i;read(i);v[i]=1;return 0;}",
+    "entrada": "2\n",
+    "saida": "",
+    "status": 6,
+    "erro": "Índice fora dos limites"
+  },
+  {
+    "nome": "indice_dinamico_negativo",
+    "fonte": "int main(){int v[2];int i;read(i);print(v[i]);return 0;}",
+    "entrada": "-1\n",
+    "saida": "",
+    "status": 6,
+    "erro": "Índice fora dos limites"
+  },
+  {
+    "nome": "load_morto_trap",
+    "fonte": "int main(){int v[1];int i=2;int x=v[i];return 0;}",
+    "saida": "",
+    "status": 6,
+    "erro": "Índice fora dos limites"
+  },
+  {
+    "nome": "uninit_morto",
+    "fonte": "int main(){int x;int y=x;return 0;}",
+    "saida": "",
+    "status": 6,
+    "erro": "Leitura de valor não inicializado"
+  },
+  {
+    "nome": "uninit_elemento",
+    "fonte": "int main(){int v[1];print(v[0]);return 0;}",
+    "saida": "",
+    "status": 6,
+    "erro": "Leitura de valor não inicializado"
+  },
+  {
+    "nome": "uninit_reentrada_bloco",
+    "fonte": "int main(){int i=0;while(i<2){int x;if(i==0)x=3;print(x);i=i+1;}return 0;}",
+    "saida": "3\n",
+    "status": 6,
+    "erro": "Leitura de valor não inicializado"
+  },
+  {
+    "nome": "entrada_invalida",
+    "fonte": "int main(){int x;read(x);return 0;}",
+    "entrada": "texto\n",
+    "saida": "",
+    "status": 6,
+    "erro": "Entrada incompatível"
+  },
+  {
+    "nome": "entrada_bool_invalida",
+    "fonte": "int main(){bool b;read(b);return 0;}",
+    "entrada": "sim\n",
+    "saida": "",
+    "status": 6,
+    "erro": "Entrada incompatível"
+  },
+  {
+    "nome": "entrada_float_nao_finita",
+    "fonte": "int main(){float x;read(x);return 0;}",
+    "entrada": "nan\n",
+    "saida": "",
+    "status": 6,
+    "erro": "Entrada incompatível"
+  },
+  {
+    "nome": "ausencia_main",
+    "fonte": "int f(){return 0;}",
+    "fase": 4,
+    "codigo": "SEM014"
+  },
+  {
+    "nome": "main_parametro",
+    "fonte": "int main(int n){return n;}",
+    "fase": 4,
+    "codigo": "SEM014"
+  },
+  {
+    "nome": "divisor_constante_zero",
+    "fonte": "int main(){print(4/(2-2));return 0;}",
+    "fase": 4,
+    "codigo": "SEM015"
+  },
+  {
+    "nome": "divisor_real_zero",
+    "fonte": "int main(){print(4.0/(1.0-1.0));return 0;}",
+    "fase": 4,
+    "codigo": "SEM015"
+  },
+  {
+    "nome": "inteiro_fora_intervalo",
+    "fonte": "int main(){print(9223372036854775808);return 0;}",
+    "fase": 4,
+    "codigo": "SEM016"
+  },
+  {
+    "nome": "read_literal",
+    "fonte": "int main(){read(2);return 0;}",
+    "fase": 4,
+    "codigo": "SEM013"
+  },
+  {
+    "nome": "print_vetor",
+    "fonte": "int main(){int v[1];print(v);return 0;}",
+    "fase": 4,
+    "codigo": "SEM004"
+  },
+  {
+    "nome": "print_como_valor",
+    "fonte": "int main(){int x=print(2);return 0;}",
+    "fase": 4,
+    "codigo": "SEM012"
+  },
+  {
+    "nome": "for_condicao_inteira",
+    "fonte": "int main(){int i;for(i=0;1;i=i+1){}return 0;}",
+    "fase": 4,
+    "codigo": "SEM005"
+  },
+  {
+    "nome": "break_apos_for",
+    "fonte": "int main(){for(;;)break;break;return 0;}",
+    "fase": 4,
+    "codigo": "SEM010"
+  },
+  {
+    "nome": "for_sintaxe_invalida",
+    "fonte": "int main(){for(;;;}return 0;}",
+    "fase": 3
+  },
+  {
+    "nome": "comentario_nao_terminado",
+    "fonte": "int main(){/* sem fim",
+    "fase": 2
+  },
+  {
+    "nome": "cse_entrada",
+    "fonte": "int main(){int a;int b;int x;int y;read(a);read(b);x=a*b+1;y=a*b+2;print(x);print(y);return 0;}",
+    "entrada": "3 7\n",
+    "saida": "22\n23\n"
+  },
+  {
+    "nome": "cse_redefinicao",
+    "fonte": "int main(){int a;int b;int x;int y;read(a);read(b);x=a*b;a=5;y=a*b;print(x);print(y);return 0;}",
+    "entrada": "3 7\n",
+    "saida": "21\n35\n"
+  },
+  {
+    "nome": "store_barreira",
+    "fonte": "int main(){int v[1];int a;int b;v[0]=2;a=v[0];v[0]=3;b=v[0];print(a);print(b);return 0;}",
+    "saida": "2\n3\n"
+  },
+  {
+    "nome": "else_mais_proximo",
+    "fonte": "int main(){if(true)if(false)print(1);else print(2);return 0;}",
+    "saida": "2\n"
+  },
+  {
+    "nome": "diamante_constante_comum",
+    "fonte": "int main(){bool b;int x;read(b);if(b)x=3;else x=3;print(x+2);return 0;}",
+    "entrada": "false\n",
+    "saida": "5\n"
+  },
+  {
+    "nome": "entrada_int_underscore",
+    "fonte": "int main(){int x;read(x);print(x);return 0;}",
+    "entrada": "1_0\n",
+    "saida": "",
+    "status": 6,
+    "erro": "Entrada incompatível"
+  },
+  {
+    "nome": "entrada_float_hex",
+    "fonte": "int main(){float x;read(x);print(x);return 0;}",
+    "entrada": "0x1p2\n",
+    "saida": "",
+    "status": 6,
+    "erro": "Entrada incompatível"
+  },
+  {
+    "nome": "multiplos_erros_sintaticos",
+    "fonte": "int main(){int a=1\nint b=2\nprint(a+b);return 0;}",
+    "fase": 3,
+    "diagnosticos": 2
+  },
+  {
+    "nome": "comando_global",
+    "fonte": "return 0;",
+    "fase": 4,
+    "codigo": "SEM014"
+  }
+]

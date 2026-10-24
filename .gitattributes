@@ -3,3 +3,4 @@
 *.sh text eol=lf
 # Preserve the professor's byte-for-byte golden files (mixed CRLF, no final LF).
 Minic/tests/semantico/*.gabarito -text whitespace=cr-at-eol
+Minic/tests/ir/originais/** -text

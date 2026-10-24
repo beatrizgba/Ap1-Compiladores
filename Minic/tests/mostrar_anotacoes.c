@@ -2,7 +2,7 @@
 #include "../src/common.h"
 
 static const char *kinds[]={"program","function","param","decl","block","if","while",
-    "return","expr","empty","literal","id","call","index","assign","binary","unary","break","continue"};
+    "return","expr","empty","literal","id","call","index","assign","binary","unary","break","continue","for"};
 
 static void dump(Node *n) {
     if(!n)return;

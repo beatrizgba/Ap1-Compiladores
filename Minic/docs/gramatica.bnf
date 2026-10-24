@@ -1,0 +1,87 @@
+00. Start -> Program  {pass}
+01. Program -> Items  {program}
+02. Items -> ε  {empty}
+03. Items -> Items Item  {append}
+04. Item -> Decl  {pass}
+05. Item -> Function  {pass}
+06. Item -> Stmt  {pass}
+07. Type -> int  {token}
+08. Type -> float  {token}
+09. Type -> bool  {token}
+10. Type -> char  {token}
+11. Type -> void  {token}
+12. Function -> Type IDENT ( Params ) Block  {function}
+13. Params -> ε  {empty}
+14. Params -> void  {empty}
+15. Params -> ParamList  {pass}
+16. ParamList -> Param  {pass}
+17. ParamList -> ParamList , Param  {append_comma}
+18. Param -> Type IDENT  {param}
+19. Param -> Type IDENT [ ]  {param_array}
+20. Decl -> Type Declarators ;  {decls}
+21. Declarators -> Declarator  {pass}
+22. Declarators -> Declarators , Declarator  {append_comma}
+23. Declarator -> IDENT  {decl}
+24. Declarator -> IDENT = Expr  {decl_init}
+25. Declarator -> IDENT [ Expr ]  {decl_array}
+26. Declarator -> IDENT [ Expr ] = Expr  {decl_array_init}
+27. Block -> { BlockItems }  {block}
+28. BlockItems -> ε  {empty}
+29. BlockItems -> BlockItems BlockItem  {append}
+30. BlockItem -> Decl  {pass}
+31. BlockItem -> Stmt  {pass}
+32. Stmt -> Block  {pass}
+33. Stmt -> if ( Expr ) Stmt  {if}
+34. Stmt -> if ( Expr ) Stmt else Stmt  {if_else}
+35. Stmt -> while ( Expr ) Stmt  {while}
+36. Stmt -> for ( OptionalExpr ; OptionalExpr ; OptionalExpr ) Stmt  {for}
+37. Stmt -> return OptionalExpr ;  {return}
+38. Stmt -> break ;  {break}
+39. Stmt -> continue ;  {continue}
+40. Stmt -> ;  {empty_stmt}
+41. Stmt -> Expr ;  {expr_stmt}
+42. OptionalExpr -> ε  {empty}
+43. OptionalExpr -> Expr  {pass}
+44. Expr -> Or  {pass}
+45. Expr -> Or = Expr  {assign}
+46. Or -> And  {pass}
+47. Or -> Or || And  {binary}
+48. And -> Equality  {pass}
+49. And -> And && Equality  {binary}
+50. Equality -> Relation  {pass}
+51. Equality -> Equality == Relation  {binary}
+52. Equality -> Equality != Relation  {binary}
+53. Relation -> Sum  {pass}
+54. Relation -> Relation < Sum  {binary}
+55. Relation -> Relation <= Sum  {binary}
+56. Relation -> Relation > Sum  {binary}
+57. Relation -> Relation >= Sum  {binary}
+58. Sum -> Product  {pass}
+59. Sum -> Sum + Product  {binary}
+60. Sum -> Sum - Product  {binary}
+61. Product -> Unary  {pass}
+62. Product -> Product * Unary  {binary}
+63. Product -> Product / Unary  {binary}
+64. Product -> Product % Unary  {binary}
+65. Unary -> Postfix  {pass}
+66. Unary -> ! Unary  {unary}
+67. Unary -> - Unary  {unary}
+68. Unary -> + Unary  {unary}
+69. Postfix -> Atom  {pass}
+70. Postfix -> Postfix [ Expr ]  {index}
+71. Postfix -> Name ( Args )  {call}
+72. Args -> ε  {empty}
+73. Args -> ArgList  {pass}
+74. ArgList -> Expr  {pass}
+75. ArgList -> ArgList , Expr  {append_comma}
+76. Atom -> Name  {id}
+77. Name -> IDENT  {token}
+78. Name -> print  {token}
+79. Name -> read  {token}
+80. Atom -> ( Expr )  {parentheses}
+81. Atom -> INT_LIT  {literal}
+82. Atom -> FLOAT_LIT  {literal}
+83. Atom -> CHAR_LIT  {literal}
+84. Atom -> STRING_LIT  {literal}
+85. Atom -> TRUE  {literal}
+86. Atom -> FALSE  {literal}

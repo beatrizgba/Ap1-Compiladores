@@ -7,7 +7,7 @@ typedef struct Allocation { void *data; struct Allocation *next; } Allocation;
 typedef struct Token { char *kind, *text; int line, column; size_t start, end; } Token;
 typedef enum { N_PROGRAM, N_FUNCTION, N_PARAM, N_DECL, N_BLOCK, N_IF, N_WHILE,
                N_RETURN, N_EXPR, N_EMPTY, N_LITERAL, N_ID, N_CALL, N_INDEX,
-               N_ASSIGN, N_BINARY, N_UNARY, N_BREAK, N_CONTINUE } Kind;
+               N_ASSIGN, N_BINARY, N_UNARY, N_BREAK, N_CONTINUE, N_FOR } Kind;
 typedef struct Symbol Symbol;
 enum { FLOW_NORMAL=1, FLOW_RETURN=2, FLOW_BREAK=4, FLOW_CONTINUE=8 };
 typedef struct Node {
@@ -21,6 +21,9 @@ typedef struct Node {
     Symbol *symbol;
     long long array_size;
     int has_array_size, assignable, loop_depth, flow;
+    const char *ir_place;
+    int global_scope;
+    size_t ir_begin,ir_end;
 } Node;
 struct Symbol { Node *node; const char *typ; int function; Symbol *next; };
 typedef struct Diagnostic { char *code, *message; int line, column; size_t order; } Diagnostic;
@@ -28,8 +31,10 @@ typedef struct Context {
     char *source;
     size_t source_length;
     Allocation *allocations;
+    int trace_parser, final_mode;
     Token *tokens; size_t count, capacity;
     char *stage, *failure; int failure_line, failure_column;
+    char *syntax_report;int syntax_count;
     Diagnostic *errors; size_t error_count, error_capacity;
 } Context;
 
